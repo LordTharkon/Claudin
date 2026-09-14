@@ -1,0 +1,395 @@
+<?xml version="1.0" standalone="no"?>
+<svg id="codec-svg" viewBox="0 0 1440 280" class="w-full h-auto drop-shadow-2xl select-none" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style xmlns="http://www.w3.org/1999/xhtml">
+        text {
+          font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        .glow-connected { filter: drop-shadow(0 0 8px #10b981) drop-shadow(0 0 14px rgba(16, 185, 129, 0.4)); }
+        .port-interactive { cursor: pointer; }
+      </style>
+          <defs>
+            <!-- Chassis Gradient -->
+            <linearGradient id="chassisGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#1e293b"/>
+              <stop offset="50%" stop-color="#0f172a"/>
+              <stop offset="100%" stop-color="#020617"/>
+            </linearGradient>
+
+            <linearGradient id="metalBezel" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#475569"/>
+              <stop offset="50%" stop-color="#64748b"/>
+              <stop offset="100%" stop-color="#334155"/>
+            </linearGradient>
+
+            <!-- Port Bay Recess -->
+            <linearGradient id="bayRecess" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#050811"/>
+              <stop offset="100%" stop-color="#0f172a"/>
+            </linearGradient>
+
+            <!-- Gold Antenna -->
+            <linearGradient id="goldAntenna" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fbbf24"/>
+              <stop offset="100%" stop-color="#b45309"/>
+            </linearGradient>
+
+            <!-- Blue USB 3.0 Tongue -->
+            <linearGradient id="usb3Blue" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#0284c7"/>
+              <stop offset="100%" stop-color="#0369a1"/>
+            </linearGradient>
+
+            <!-- Glow Filters -->
+            <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+            
+            <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="5" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+
+          <!-- ================= CHASSIS BODY ================= -->
+          <!-- Outer Chassis Outline with subtle drop shadow -->
+          <rect x="20" y="25" width="1400" height="235" rx="16" fill="url(#metalBezel)" stroke="#334155" stroke-width="2"/>
+          <rect x="24" y="29" width="1392" height="227" rx="14" fill="url(#chassisGrad)"/>
+
+          <!-- Top Vent Grille / Mounting Accents -->
+          <g opacity="0.4">
+            <line x1="160" y1="38" x2="1280" y2="38" stroke="#475569" stroke-width="2" stroke-dasharray="4,4"/>
+            <line x1="160" y1="44" x2="1280" y2="44" stroke="#475569" stroke-width="2" stroke-dasharray="4,4"/>
+          </g>
+
+          <!-- Screws on Corners -->
+          <circle cx="36" cy="41" r="3.5" fill="#64748b" stroke="#334155"/>
+          <line x1="33" y1="41" x2="39" y2="41" stroke="#1e293b"/>
+          <circle cx="1404" cy="41" r="3.5" fill="#64748b" stroke="#334155"/>
+          <line x1="1401" y1="41" x2="1407" y2="41" stroke="#1e293b"/>
+          <circle cx="36" cy="245" r="3.5" fill="#64748b" stroke="#334155"/>
+          <line x1="33" y1="245" x2="39" y2="245" stroke="#1e293b"/>
+          <circle cx="1404" cy="245" r="3.5" fill="#64748b" stroke="#334155"/>
+          <line x1="1401" y1="245" x2="1407" y2="245" stroke="#1e293b"/>
+
+          <!-- 3 ANTENNAS & VENTS MATCHING OFFICIAL SCHEMATIC -->
+          <!-- Top Vent Louvers interrupted by the 3 Antenna Ports -->
+          <g id="top-vents" fill="#090d16" opacity="0.9">
+            <!-- Vent Block 1: Between Antenna 1 and Antenna 2 (x: 195 to 650) -->
+            <line x1="195" y1="46" x2="650" y2="46" stroke="#475569" stroke-width="2.5" stroke-dasharray="4,4"/>
+            <line x1="195" y1="52" x2="650" y2="52" stroke="#475569" stroke-width="2.5" stroke-dasharray="4,4"/>
+            <!-- Vent Block 2: Between Antenna 2 and Antenna 3 (x: 710 to 1135) -->
+            <line x1="710" y1="46" x2="1135" y2="46" stroke="#475569" stroke-width="2.5" stroke-dasharray="4,4"/>
+            <line x1="710" y1="52" x2="1135" y2="52" stroke="#475569" stroke-width="2.5" stroke-dasharray="4,4"/>
+            <!-- Vent Block 3: Between Antenna 3 and K-Lock (x: 1195 to 1355) -->
+            <line x1="1195" y1="46" x2="1355" y2="46" stroke="#475569" stroke-width="2.5" stroke-dasharray="4,4"/>
+            <line x1="1195" y1="52" x2="1355" y2="52" stroke="#475569" stroke-width="2.5" stroke-dasharray="4,4"/>
+          </g>
+
+          <!-- ANTENNA 1: WI-FI ANTENNA (LEFT) -->
+          <g id="antenna-wifi-1" class="port-interactive" data-port="antenna-wifi-1">
+            <circle cx="168" cy="49" r="10" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+            <circle cx="168" cy="49" r="6.5" fill="url(#goldAntenna)" stroke="#475569" stroke-width="1"/>
+            <circle cx="168" cy="49" r="2.5" fill="#020617"/>
+            <text x="168" y="34" text-anchor="middle" fill="#38bdf8" font-size="7.5" font-weight="bold">Wi-Fi</text>
+          </g>
+
+          <!-- ANTENNA 2: WI-FI ANTENNA (CENTER) -->
+          <g id="antenna-wifi-2" class="port-interactive" data-port="antenna-wifi-2">
+            <circle cx="680" cy="49" r="10" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+            <circle cx="680" cy="49" r="6.5" fill="url(#goldAntenna)" stroke="#475569" stroke-width="1"/>
+            <circle cx="680" cy="49" r="2.5" fill="#020617"/>
+            <text x="680" y="34" text-anchor="middle" fill="#38bdf8" font-size="7.5" font-weight="bold">Wi-Fi</text>
+          </g>
+
+          <!-- ANTENNA 3: BLUETOOTH ANTENNA (RIGHT) -->
+          <g id="antenna-bt" class="port-interactive" data-port="antenna-bt">
+            <circle cx="1165" cy="49" r="10" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+            <circle cx="1165" cy="49" r="6.5" fill="url(#goldAntenna)" stroke="#475569" stroke-width="1"/>
+            <circle cx="1165" cy="49" r="2.5" fill="#020617"/>
+            <text x="1165" y="34" text-anchor="middle" fill="#c084fc" font-size="7.5" font-weight="bold">Bluetooth®</text>
+          </g>
+
+          <!-- KENSINGTON SECURITY LOCK (FAR RIGHT) -->
+          <g id="kensington-lock" class="port-interactive" data-port="kensington">
+            <rect x="1370" y="44" width="18" height="10" rx="3.5" fill="#020617" stroke="#475569" stroke-width="1"/>
+            <text x="1379" y="38" text-anchor="middle" fill="#64748b" font-size="7" font-weight="bold">K-Lock</text>
+          </g>
+
+          <!-- CISCO BRANDING ON CHASSIS -->
+          <text x="45" y="68" fill="#94a3b8" font-size="14" font-weight="800" letter-spacing="1">CISCO</text>
+          <text x="105" y="68" fill="#64748b" font-size="12" font-weight="500">Codec EQ</text>
+
+
+          <!-- ================= 1. POWER & ROCKER SWITCH ================= -->
+          <g id="bay-power">
+            <rect x="36" y="88" width="134" height="145" rx="8" fill="url(#bayRecess)" stroke="#334155" stroke-width="1"/>
+            <text x="103" y="108" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600">POWER &amp; SWITCH</text>
+            
+            <!-- AC C14 Inlet -->
+            <g id="port-power-socket" class="port-interactive" data-port="power-socket">
+              <path d="M 46 128 L 86 128 L 94 142 L 94 172 L 38 172 L 38 142 Z" fill="#020617" stroke="#10b981" stroke-width="1.5" class="glow-connected"/>
+              <rect x="48" y="140" width="4" height="12" rx="1" fill="#94a3b8"/>
+              <rect x="80" y="140" width="4" height="12" rx="1" fill="#94a3b8"/>
+              <rect x="64" y="156" width="4" height="10" rx="1" fill="#94a3b8"/>
+              <text x="66" y="190" text-anchor="middle" fill="#10b981" font-size="8" font-weight="bold">100-240V</text>
+              <text x="66" y="201" text-anchor="middle" fill="#94a3b8" font-size="7">Plugged In</text>
+            </g>
+
+            <!-- Rocker Power Switch (ON Position) -->
+            <g id="port-power-switch" class="port-interactive" data-port="power-switch">
+              <rect x="110" y="125" width="28" height="50" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+              <rect x="112" y="127" width="24" height="23" rx="2" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+              <text x="124" y="142" text-anchor="middle" fill="#10b981" font-size="12" font-weight="bold">|</text>
+              <rect x="112" y="150" width="24" height="23" rx="2" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>
+              <text x="124" y="165" text-anchor="middle" fill="#64748b" font-size="11">○</text>
+              <text x="124" y="190" text-anchor="middle" fill="#10b981" font-size="8" font-weight="bold">SWITCH</text>
+              <text x="124" y="201" text-anchor="middle" fill="#94a3b8" font-size="7">ON (Active)</text>
+            </g>
+
+            <rect x="42" y="214" width="122" height="12" rx="3" fill="#0f172a"/>
+            <text x="103" y="223" text-anchor="middle" fill="#64748b" font-size="8">MAIN POWER</text>
+          </g>
+
+
+          <!-- ================= 2. ETHERNET & POE++ (5 PORTS IN CORRECT SCHEMATIC ORDER) ================= -->
+          <g id="bay-network">
+            <rect x="182" y="88" width="284" height="145" rx="8" fill="url(#bayRecess)" stroke="#334155" stroke-width="1"/>
+            <text x="324" y="108" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600">ETHERNET &amp; POE++ (5 PORTS)</text>
+            
+            <!-- POE 1 -->
+            <g id="port-poe1" class="port-interactive" data-port="poe1">
+              <rect x="192" y="125" width="38" height="42" rx="4" fill="#1e293b" stroke="#10b981" stroke-width="2" class="glow-connected"/>
+              <rect x="202" y="125" width="18" height="8" fill="#0f172a"/>
+              <line x1="198" y1="157" x2="224" y2="157" stroke="#fbbf24" stroke-width="2" stroke-dasharray="2,2"/>
+              <circle cx="197" cy="131" r="2" fill="#10b981"/>
+              <text x="211" y="181" text-anchor="middle" fill="#94a3b8" font-size="9" font-weight="bold">PoE 1</text>
+              <text x="211" y="193" text-anchor="middle" fill="#10b981" font-size="8">Quad Cam</text>
+            </g>
+
+            <!-- POE 2 -->
+            <g id="port-poe2" class="port-interactive" data-port="poe2">
+              <rect x="238" y="125" width="38" height="42" rx="4" fill="#1e293b" stroke="#10b981" stroke-width="2" class="glow-connected"/>
+              <rect x="248" y="125" width="18" height="8" fill="#0f172a"/>
+              <line x1="244" y1="157" x2="270" y2="157" stroke="#fbbf24" stroke-width="2" stroke-dasharray="2,2"/>
+              <circle cx="243" cy="131" r="2" fill="#10b981"/>
+              <text x="257" y="181" text-anchor="middle" fill="#94a3b8" font-size="9" font-weight="bold">PoE 2</text>
+              <text x="257" y="193" text-anchor="middle" fill="#10b981" font-size="8">Navigator</text>
+            </g>
+
+            <!-- POE 3 -->
+            <g id="port-poe3" class="port-interactive" data-port="poe3">
+              <rect x="284" y="125" width="38" height="42" rx="4" fill="#1e293b" stroke="#10b981" stroke-width="2" class="glow-connected"/>
+              <rect x="294" y="125" width="18" height="8" fill="#0f172a"/>
+              <line x1="290" y1="157" x2="316" y2="157" stroke="#fbbf24" stroke-width="2" stroke-dasharray="2,2"/>
+              <circle cx="289" cy="131" r="2" fill="#10b981"/>
+              <text x="303" y="181" text-anchor="middle" fill="#94a3b8" font-size="9" font-weight="bold">PoE 3</text>
+              <text x="303" y="193" text-anchor="middle" fill="#10b981" font-size="8">Mic ?</text>
+            </g>
+
+            <!-- POE 4: TOUCH CONTROLLER / NAVIGATOR (Port 4 in 4-gang block) -->
+            <g id="port-poe4" class="port-interactive" data-port="poe4">
+              <rect x="330" y="125" width="38" height="42" rx="4" fill="#1e293b" stroke="#10b981" stroke-width="2" class="glow-connected"/>
+              <rect x="340" y="125" width="18" height="8" fill="#0f172a"/>
+              <line x1="336" y1="157" x2="362" y2="157" stroke="#fbbf24" stroke-width="2" stroke-dasharray="2,2"/>
+              <circle cx="335" cy="131" r="2" fill="#10b981"/>
+              <text x="349" y="181" text-anchor="middle" fill="#94a3b8" font-size="9" font-weight="bold">PoE 4</text>
+              <text x="349" y="193" text-anchor="middle" fill="#10b981" font-size="8">Mic ?</text>
+            </g>
+
+            <!-- PORT: LAN (RJ45 Separated Bezel) -->
+            <g id="port-lan" class="port-interactive" data-port="lan">
+              <rect x="382" y="125" width="38" height="42" rx="4" fill="#1e293b" stroke="#10b981" stroke-width="2" class="glow-connected"/>
+              <rect x="392" y="125" width="18" height="8" fill="#0f172a"/>
+              <line x1="388" y1="157" x2="414" y2="157" stroke="#fbbf24" stroke-width="2" stroke-dasharray="2,2"/>
+              <circle cx="387" cy="131" r="2" fill="#10b981"/>
+              <circle cx="415" cy="131" r="2" fill="#fbbf24"/>
+              <text x="401" y="181" text-anchor="middle" fill="#38bdf8" font-size="9" font-weight="bold">LAN</text>
+              <text x="401" y="193" text-anchor="middle" fill="#10b981" font-size="8" font-weight="bold">Fi2/0/17</text>
+            </g>
+
+            <rect x="192" y="214" width="228" height="12" rx="3" fill="#0f172a"/>
+            <text x="324" y="223" text-anchor="middle" fill="#64748b" font-size="8">4x POE++ PORTS + 1x LAN UPLINK</text>
+          </g>
+
+
+          <!-- ================= 3. VIDEO OUTPUTS (3 HDMI OUT) ================= -->
+          <g id="bay-video-out">
+            <rect x="478" y="88" width="202" height="145" rx="8" fill="url(#bayRecess)" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.4"/>
+            <text x="579" y="108" text-anchor="middle" fill="#38bdf8" font-size="10" font-weight="700">VIDEO OUTPUT (DISPLAYS)</text>
+            
+            <!-- HDMI OUT 1: LEFT DISPLAY (Connected) -->
+            <g id="port-hdmi-out-1" class="port-interactive port-selected" data-port="hdmi-out-1">
+              <path d="M 492 128 L 534 128 L 534 148 L 527 158 L 499 158 L 492 148 Z" fill="#1e293b" stroke="#10b981" stroke-width="2.5" class="glow-connected"/>
+              <rect x="499" y="138" width="28" height="7" rx="1" fill="#020617"/>
+              <text x="513" y="173" text-anchor="middle" fill="#10b981" font-size="10" font-weight="bold">OUT 1</text>
+              <rect x="488" y="179" width="50" height="15" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="0.5"/>
+              <text x="513" y="190" text-anchor="middle" fill="#6ee7b7" font-size="8" font-weight="bold">LEFT DISP</text>
+              <text x="513" y="203" text-anchor="middle" fill="#94a3b8" font-size="7">Samsung 75"</text>
+            </g>
+
+            <!-- HDMI OUT 2: RIGHT DISPLAY (Connected) -->
+            <g id="port-hdmi-out-2" class="port-interactive" data-port="hdmi-out-2">
+              <path d="M 556 128 L 598 128 L 598 148 L 591 158 L 563 158 L 556 148 Z" fill="#1e293b" stroke="#10b981" stroke-width="2.5" class="glow-connected"/>
+              <rect x="563" y="138" width="28" height="7" rx="1" fill="#020617"/>
+              <text x="577" y="173" text-anchor="middle" fill="#10b981" font-size="10" font-weight="bold">OUT 2</text>
+              <rect x="552" y="179" width="50" height="15" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="0.5"/>
+              <text x="577" y="190" text-anchor="middle" fill="#6ee7b7" font-size="8" font-weight="bold">RIGHT DISP</text>
+              <text x="577" y="203" text-anchor="middle" fill="#94a3b8" font-size="7">Samsung 75"</text>
+            </g>
+
+            <!-- HDMI OUT 3: SPARE / UNCONNECTED -->
+            <g id="port-hdmi-out-3" class="port-interactive" data-port="hdmi-out-3">
+              <path d="M 620 128 L 662 128 L 662 148 L 655 158 L 627 158 L 620 148 Z" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+              <rect x="627" y="138" width="28" height="7" rx="1" fill="#020617"/>
+              <text x="641" y="173" text-anchor="middle" fill="#64748b" font-size="10" font-weight="bold">OUT 3</text>
+              <rect x="617" y="179" width="48" height="15" rx="4" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>
+              <text x="641" y="190" text-anchor="middle" fill="#64748b" font-size="8">SPARE</text>
+              <text x="641" y="203" text-anchor="middle" fill="#475569" font-size="7">Empty</text>
+            </g>
+
+            <rect x="488" y="214" width="182" height="12" rx="3" fill="#0f172a"/>
+            <text x="579" y="223" text-anchor="middle" fill="#38bdf8" font-size="8">HDMI 2.0 (UP TO 4Kp60)</text>
+          </g>
+
+
+          <!-- ================= 4. VIDEO INPUTS (3 HDMI IN + 1 USB-C IN) ================= -->
+          <g id="bay-video-in">
+            <rect x="692" y="88" width="266" height="145" rx="8" fill="url(#bayRecess)" stroke="#334155" stroke-width="1"/>
+            <text x="825" y="108" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600">VIDEO INPUTS</text>
+            
+            <!-- HDMI IN 1 (CAMERA - Connected) -->
+            <g id="port-hdmi-in-1" class="port-interactive" data-port="hdmi-in-1">
+              <path d="M 704 128 L 742 128 L 742 148 L 735 158 L 711 158 L 704 148 Z" fill="#1e293b" stroke="#10b981" stroke-width="2.5" class="glow-connected"/>
+              <rect x="709" y="138" width="26" height="7" rx="1" fill="#020617"/>
+              <text x="723" y="173" text-anchor="middle" fill="#10b981" font-size="8" font-weight="bold">IN 1 (CAM)</text>
+              <text x="723" y="186" text-anchor="middle" fill="#6ee7b7" font-size="8" font-weight="bold">Quad Cam</text>
+              <text x="723" y="198" text-anchor="middle" fill="#94a3b8" font-size="7">Main Feed</text>
+            </g>
+
+            <!-- HDMI IN 2 (PC 1 - Open) -->
+            <g id="port-hdmi-in-2" class="port-interactive" data-port="hdmi-in-2">
+              <path d="M 754 128 L 792 128 L 792 148 L 785 158 L 761 158 L 754 148 Z" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+              <rect x="759" y="138" width="26" height="7" rx="1" fill="#020617"/>
+              <text x="773" y="173" text-anchor="middle" fill="#64748b" font-size="8" font-weight="bold">IN 2 (PC)</text>
+              <text x="773" y="186" text-anchor="middle" fill="#475569" font-size="8">Open</text>
+              <text x="773" y="198" text-anchor="middle" fill="#475569" font-size="7">Table HDMI 1</text>
+            </g>
+
+            <!-- HDMI IN 3 (PC 2 - Open) -->
+            <g id="port-hdmi-in-3" class="port-interactive" data-port="hdmi-in-3">
+              <path d="M 804 128 L 842 128 L 842 148 L 835 158 L 811 158 L 804 148 Z" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+              <rect x="809" y="138" width="26" height="7" rx="1" fill="#020617"/>
+              <text x="823" y="173" text-anchor="middle" fill="#64748b" font-size="8" font-weight="bold">IN 3 (PC)</text>
+              <text x="823" y="186" text-anchor="middle" fill="#475569" font-size="8">Open</text>
+              <text x="823" y="198" text-anchor="middle" fill="#475569" font-size="7">Table HDMI 2</text>
+            </g>
+
+            <!-- USB-C IN (PC / BYOD) -->
+            <g id="port-usbc-in" class="port-interactive" data-port="usbc-in">
+              <rect x="856" y="132" width="38" height="20" rx="7" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+              <rect x="862" y="138" width="26" height="8" rx="3" fill="#020617"/>
+              <text x="875" y="173" text-anchor="middle" fill="#64748b" font-size="8" font-weight="bold">USB-C</text>
+              <text x="875" y="186" text-anchor="middle" fill="#475569" font-size="8">BYOD</text>
+              <text x="875" y="198" text-anchor="middle" fill="#475569" font-size="7">DP Alt-Mode</text>
+            </g>
+
+            <rect x="702" y="214" width="246" height="12" rx="3" fill="#0f172a"/>
+            <text x="825" y="223" text-anchor="middle" fill="#64748b" font-size="8">CAMERA &amp; PRESENTATION INPUTS</text>
+          </g>
+
+
+          <!-- ================= 5. USB & MAINTENANCE (4 USB-A + MICRO-USB + RESET) ================= -->
+          <g id="bay-usb">
+            <rect x="970" y="88" width="206" height="145" rx="8" fill="url(#bayRecess)" stroke="#334155" stroke-width="1"/>
+            <text x="1073" y="108" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600">USB 3.0 &amp; SERVICE</text>
+            
+            <!-- 4 Vertical USB-A Ports in a Row -->
+            <g id="port-usba-1" class="port-interactive" data-port="usba-1">
+              <rect x="982" y="126" width="16" height="36" rx="2" fill="#0f172a" stroke="#b2c2db" stroke-width="1.5"/>
+              <rect x="984" y="129" width="5" height="30" fill="#b2c2db"/>
+              <text x="990" y="178" text-anchor="middle" fill="#64748b" font-size="8" font-weight="bold">1</text>
+            </g>
+
+            <g id="port-usba-2" class="port-interactive" data-port="usba-2">
+              <rect x="1006" y="126" width="16" height="36" rx="2" fill="#0f172a" stroke="#b2c2db" stroke-width="1.5"/>
+              <rect x="1008" y="129" width="5" height="30" fill="#b2c2db"/>
+              <text x="1014" y="178" text-anchor="middle" fill="#64748b" font-size="8" font-weight="bold">2</text>
+            </g>
+
+            <g id="port-usba-3" class="port-interactive" data-port="usba-3">
+              <rect x="1030" y="126" width="16" height="36" rx="2" fill="#0f172a" stroke="#b2c2db" stroke-width="1.5"/>
+              <rect x="1032" y="129" width="5" height="30"  fill="#b2c2db"/>
+              <text x="1038" y="178" text-anchor="middle" fill="#64748b" font-size="8" font-weight="bold">3</text>
+            </g>
+
+            <g id="port-usba-4" class="port-interactive" data-port="usba-4">
+              <rect x="1054" y="126" width="16" height="36" rx="2" fill="#0f172a" stroke="#b2c2db" stroke-width="1.5"/>
+              <rect x="1056" y="129" width="5" height="30" fill="#b2c2db"/>
+              <text x="1062" y="178" text-anchor="middle" fill="#64748b" font-size="8" font-weight="bold">4</text>
+            </g>
+
+            <!-- Micro-USB Service Port -->
+            <g id="port-microusb" class="port-interactive" data-port="microusb">
+              <rect x="1082" y="136" width="22" height="13" rx="3" fill="#0f172a" stroke="#64748b" stroke-width="1.2"/>
+              <text x="1093" y="162" text-anchor="middle" fill="#64748b" font-size="7">uUSB</text>
+              <text x="1093" y="175" text-anchor="middle" fill="#475569" font-size="6">Service</text>
+            </g>
+
+            <!-- Factory Reset Pinhole -->
+            <g id="port-reset" class="port-interactive" data-port="reset">
+              <circle cx="1120" cy="142" r="3" fill="#475569" stroke="#1e293b"/>
+              <text x="1120" y="162" text-anchor="middle" fill="#64748b" font-size="7">RESET</text>
+              <text x="1120" y="175" text-anchor="middle" fill="#475569" font-size="6">Pinhole</text>
+            </g>
+
+            <rect x="978" y="214" width="190" height="12" rx="3" fill="#0f172a"/>
+            <text x="1073" y="223" text-anchor="middle" fill="#64748b" font-size="8">4x USB 3.0 + SERVICE INTERFACE</text>
+          </g>
+
+
+          <!-- ================= 6. AUDIO I/O (MICS 1-3 + LINE OUT ON FAR RIGHT) ================= -->
+          <g id="bay-audio">
+            <rect x="1188" y="88" width="216" height="145" rx="8" fill="url(#bayRecess)" stroke="#334155" stroke-width="1"/>
+            <text x="1296" y="108" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600">AUDIO I/O (3.5mm)</text>
+            
+            <!-- MIC IN 1 (Open) -->
+            <g id="port-mic1" class="port-interactive" data-port="mic1">
+              <circle cx="1210" cy="144" r="10" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+              <circle cx="1210" cy="144" r="4" fill="#020617"/>
+              <text x="1210" y="172" text-anchor="middle" fill="#64748b" font-size="8">Mic 1</text>
+              <text x="1210" y="184" text-anchor="middle" fill="#475569" font-size="7">Open</text>
+            </g>
+
+            <!-- MIC IN 2 (Open) -->
+            <g id="port-mic2" class="port-interactive" data-port="mic2">
+              <circle cx="1252" cy="144" r="10" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+              <circle cx="1252" cy="144" r="4" fill="#020617"/>
+              <text x="1252" y="172" text-anchor="middle" fill="#64748b" font-size="8">Mic 2</text>
+              <text x="1252" y="184" text-anchor="middle" fill="#475569" font-size="7">Open</text>
+            </g>
+
+            <!-- MIC IN 3 (Open) -->
+            <g id="port-mic3" class="port-interactive" data-port="mic3">
+              <circle cx="1294" cy="144" r="10" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+              <circle cx="1294" cy="144" r="4" fill="#020617"/>
+              <text x="1294" y="172" text-anchor="middle" fill="#64748b" font-size="8">Mic 3</text>
+              <text x="1294" y="184" text-anchor="middle" fill="#475569" font-size="7">Open</text>
+            </g>
+
+            <!-- LINE OUT (Connected - Far Right, Speaker Icon) -->
+            <g id="port-lineout" class="port-interactive" data-port="lineout">
+              <circle cx="1348" cy="144" r="13" fill="#1e293b" stroke="#10b981" stroke-width="2.5" class="glow-connected"/>
+              <circle cx="1348" cy="144" r="5" fill="#020617" stroke="#10b981" stroke-width="1"/>
+              <circle cx="1348" cy="144" r="1.5" fill="#fbbf24"/>
+              <text x="1348" y="172" text-anchor="middle" fill="#10b981" font-size="9" font-weight="bold">Line Out</text>
+              <text x="1348" y="184" text-anchor="middle" fill="#6ee7b7" font-size="8" font-weight="bold">Speakers</text>
+              <text x="1348" y="196" text-anchor="middle" fill="#94a3b8" font-size="7">Room Amp</text>
+            </g>
+
+            <rect x="1196" y="214" width="200" height="12" rx="3" fill="#0f172a"/>
+            <text x="1296" y="223" text-anchor="middle" fill="#64748b" font-size="8">3x MIC IN + 1x LINE OUT (RIGHT)</text>
+          </g>
+
+        </svg>
