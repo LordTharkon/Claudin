@@ -1,0 +1,1377 @@
+<title>Port Map Studio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  :root {
+    --paper:#e9edf3; --grid:#d9e1ec; --surface:#ffffff; --surface-2:#f3f6fa;
+    --ink:#131a23; --muted:#5d6b7c; --faint:#8592a3;
+    --line:#cfd8e4; --line-strong:#b3c0d1;
+    --accent:#2f5fd0; --accent-ink:#ffffff; --accent-soft:#e3ebfc;
+    --ok:#0f8f6c; --warn:#a96c0a; --bad:#c9314c; --idle:#64748b;
+    --canvas:#0a0f16; --canvas-grid:#16202e;
+    --shadow:0 1px 2px rgba(16,26,40,.06), 0 8px 24px rgba(16,26,40,.06);
+    --r:10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0c1118; --grid:#151d28; --surface:#151c26; --surface-2:#1b2431;
+      --ink:#e7edf5; --muted:#93a1b3; --faint:#71808f;
+      --line:#27313f; --line-strong:#374355;
+      --accent:#7a9bf0; --accent-ink:#0c1118; --accent-soft:#1d2a42;
+      --ok:#34d399; --warn:#fbbf24; --bad:#fb7185; --idle:#94a3b8;
+      --canvas:#070b11; --canvas-grid:#131c28;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0c1118; --grid:#151d28; --surface:#151c26; --surface-2:#1b2431;
+    --ink:#e7edf5; --muted:#93a1b3; --faint:#71808f;
+    --line:#27313f; --line-strong:#374355;
+    --accent:#7a9bf0; --accent-ink:#0c1118; --accent-soft:#1d2a42;
+    --ok:#34d399; --warn:#fbbf24; --bad:#fb7185; --idle:#94a3b8;
+    --canvas:#070b11; --canvas-grid:#131c28;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin:0; background: var(--paper); color: var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  img { max-width:100%; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  .mono { font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  /* ---------- shell ---------- */
+  .app { min-height:100%; height:100%; display:flex; flex-direction:column; }
+
+  .topbar {
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:10px 16px; background:var(--surface); border-bottom:1px solid var(--line);
+  }
+  .mark { display:flex; align-items:center; gap:8px; font-weight:600; letter-spacing:.01em; white-space:nowrap; }
+  .mark-glyph {
+    width:22px; height:22px; border-radius:5px; flex:none;
+    background:var(--canvas); border:1px solid var(--line-strong);
+    display:grid; place-items:center;
+  }
+  .mark-glyph i { display:block; width:9px; height:9px; border-radius:2px; background:var(--ok); box-shadow:0 0 6px var(--ok); }
+  .mark-name { font-size:13px; }
+  .mark-sub { color:var(--faint); font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+
+  .devname {
+    flex:1 1 220px; min-width:0; background:transparent; border:1px solid transparent;
+    border-radius:8px; padding:6px 10px; font-size:16px; font-weight:600; letter-spacing:-.01em;
+  }
+  .devname:hover { border-color:var(--line); }
+  .devname:focus { border-color:var(--accent); outline:none; background:var(--surface-2); }
+
+  .tools { display:flex; gap:8px; flex-wrap:wrap; }
+
+  .btn {
+    background:var(--surface); border:1px solid var(--line-strong); color:var(--ink);
+    padding:7px 12px; border-radius:8px; font-size:13px; font-weight:500;
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .btn:hover { border-color:var(--accent); color:var(--accent); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .btn.primary:hover { filter:brightness(1.07); color:var(--accent-ink); }
+  .btn.ghost { border-color:transparent; background:transparent; color:var(--muted); }
+  .btn.ghost:hover { background:var(--surface-2); color:var(--ink); border-color:var(--line); }
+  .btn.sm { padding:4px 8px; font-size:12px; border-radius:6px; }
+  .btn.danger:hover { border-color:var(--bad); color:var(--bad); }
+  .btn[disabled] { opacity:.4; pointer-events:none; }
+
+  /* ---------- workbench ---------- */
+  .workbench { flex:1; display:grid; grid-template-columns: minmax(0,1fr) 384px; min-height:0; }
+
+  .stage { display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--paper); }
+  .stagebar {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:8px 16px; border-bottom:1px solid var(--line); color:var(--muted); font-size:12px;
+  }
+  .zoomgroup { display:flex; align-items:center; gap:2px; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:2px; }
+  .zoomgroup button { border:none; background:transparent; padding:3px 9px; border-radius:6px; font-size:12px; color:var(--muted); }
+  .zoomgroup button:hover { background:var(--surface-2); color:var(--ink); }
+  .zoomval { min-width:52px; text-align:center; font-size:12px; }
+  .hint { margin-left:auto; display:flex; align-items:center; gap:6px; }
+  .kbd {
+    font-family:"IBM Plex Mono", monospace; font-size:11px; border:1px solid var(--line-strong);
+    border-bottom-width:2px; border-radius:5px; padding:1px 5px; background:var(--surface); color:var(--muted);
+  }
+
+  .canvas-scroll {
+    flex:1; overflow:auto; padding:24px 16px 32px;
+    display:flex; flex-direction:column;
+    justify-content:center;
+    justify-content:safe center;   /* falls back to start when the device overflows */
+    background:
+      linear-gradient(to right, var(--grid) 1px, transparent 1px) 0 0/28px 28px,
+      linear-gradient(to bottom, var(--grid) 1px, transparent 1px) 0 0/28px 28px,
+      var(--paper);
+  }
+  .canvas-inner { min-width:min-content; margin:0 auto; flex:none; }
+  .canvas-inner svg { display:block; filter:drop-shadow(0 18px 34px rgba(8,14,24,.34)); }
+  .canvas-inner svg .port-hit { cursor:pointer; }
+  .canvas-empty { color:var(--faint); text-align:center; padding:48px 12px; }
+
+  /* ---------- rail ---------- */
+  .rail {
+    border-left:1px solid var(--line); background:var(--surface);
+    overflow-y:auto; min-height:0; display:flex; flex-direction:column;
+  }
+  .panel { border-bottom:1px solid var(--line); padding:14px 16px; }
+  .panel-head {
+    display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;
+  }
+  .panel-title {
+    font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--faint);
+  }
+  .panel-note { font-size:12px; color:var(--muted); margin:-4px 0 10px; }
+
+  .field { display:block; margin-bottom:10px; }
+  .field > span { display:block; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-bottom:4px; }
+  .field input[type=text], .field textarea, .field select {
+    width:100%; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:8px; padding:7px 9px; font-size:13px;
+  }
+  .field input[type=text]:focus, .field textarea:focus, .field select:focus { outline:none; border-color:var(--accent); background:var(--surface); }
+  .field .helper { font-size:11px; color:var(--faint); margin-top:3px; font-weight:400; letter-spacing:0; text-transform:none; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  /* status segmented */
+  .segs { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
+  .seg {
+    display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 2px;
+    border:1px solid var(--line); border-radius:8px; background:var(--surface-2); font-size:11px; color:var(--muted);
+  }
+  .seg .dot { width:9px; height:9px; border-radius:50%; }
+  .seg[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  /* type picker */
+  .types { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .type {
+    border:1px solid var(--line); border-radius:8px; background:var(--canvas); padding:6px 3px 4px;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  .type svg { display:block; }
+  .type span { font-size:9.5px; color:#94a3b8; letter-spacing:.02em; text-align:center; line-height:1.15; }
+  .type[aria-pressed="true"] { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+  .type:hover { border-color:var(--accent); }
+
+  .rowbtns { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+
+  /* structure */
+  .bay {
+    border:1px solid var(--line); border-radius:var(--r); background:var(--surface-2);
+    padding:10px; margin-bottom:10px;
+  }
+  .bay.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+  .bay-top { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .bay-title {
+    flex:1; min-width:0; background:transparent; border:1px solid transparent; border-radius:6px;
+    padding:4px 6px; font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+  }
+  .bay-title:hover { border-color:var(--line); }
+  .bay-title:focus { outline:none; border-color:var(--accent); background:var(--surface); }
+  .chips { display:flex; flex-wrap:wrap; gap:4px; }
+  .chip {
+    display:inline-flex; align-items:center; gap:5px; padding:3px 7px; border-radius:6px;
+    border:1px solid var(--line); background:var(--surface); font-size:11.5px; max-width:100%;
+  }
+  .chip .dot { width:7px; height:7px; border-radius:50%; flex:none; }
+  .chip .lbl { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px; }
+  .chip[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); font-weight:600; }
+  .chip.dragging { opacity:.4; }
+  .chip.add { border-style:dashed; color:var(--muted); }
+  .chip.add:hover { border-color:var(--accent); color:var(--accent); }
+
+  .stack { display:flex; flex-direction:column; gap:6px; }
+  .liner { display:flex; align-items:center; gap:6px; }
+  .liner input[type=text] { flex:1; min-width:0; }
+  .empty-note { color:var(--faint); font-size:12px; padding:10px 0; }
+
+  /* ---------- dialog ---------- */
+  dialog {
+    border:none; border-radius:14px; padding:0; max-width:min(760px, calc(100vw - 32px)); width:100%;
+    background:var(--surface); color:var(--ink); box-shadow:var(--shadow);
+  }
+  dialog::backdrop { background:rgba(10,16,24,.55); backdrop-filter:blur(2px); }
+  .dlg-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line); }
+  .dlg-head h2 { margin:0; font-size:15px; font-weight:600; }
+  .dlg-body { padding:16px 18px; max-height:min(66vh, 560px); overflow:auto; }
+  .dlg-foot { display:flex; gap:8px; justify-content:flex-end; padding:12px 18px; border-top:1px solid var(--line); flex-wrap:wrap; }
+
+  .tabs { display:flex; gap:4px; margin-bottom:12px; }
+  .tab { border:1px solid var(--line); background:var(--surface-2); border-radius:8px; padding:5px 11px; font-size:12.5px; color:var(--muted); }
+  .tab[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  .code {
+    width:100%; height:290px; resize:vertical; background:var(--canvas); color:#cbd5e1;
+    border:1px solid var(--line-strong); border-radius:10px; padding:11px;
+    font-family:"IBM Plex Mono", monospace; font-size:11.5px; line-height:1.5; white-space:pre;
+  }
+
+  .cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:10px; }
+  .card {
+    text-align:left; border:1px solid var(--line); border-radius:var(--r); background:var(--surface-2);
+    padding:11px 12px; display:flex; flex-direction:column; gap:3px;
+  }
+  .card:hover { border-color:var(--accent); }
+  .card b { font-size:13px; font-weight:600; }
+  .card small { color:var(--muted); font-size:11.5px; }
+  .card .thumb { background:var(--canvas); border-radius:6px; padding:6px; margin-bottom:4px; overflow:hidden; }
+  .card .thumb svg { display:block; width:100%; height:auto; }
+
+  .libitem { display:flex; align-items:center; gap:10px; padding:9px 10px; border:1px solid var(--line); border-radius:var(--r); background:var(--surface-2); margin-bottom:8px; }
+  .libitem .grow { flex:1; min-width:0; }
+  .libitem b { display:block; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .libitem small { color:var(--muted); font-size:11.5px; }
+
+  .banner { display:flex; gap:9px; align-items:flex-start; padding:10px 12px; border-radius:var(--r); background:var(--surface-2); border:1px solid var(--line); font-size:12.5px; color:var(--muted); margin-bottom:12px; }
+
+  .toast {
+    position:fixed; left:50%; transform:translateX(-50%); bottom:calc(20px + env(safe-area-inset-bottom, 0px));
+    background:var(--ink); color:var(--paper); padding:9px 15px; border-radius:999px; font-size:13px;
+    box-shadow:var(--shadow); z-index:50; opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(-4px); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+
+  @media (max-width: 960px) {
+    .workbench { grid-template-columns:1fr; grid-template-rows:auto auto; }
+    .app { height:auto; }
+    .stage { min-height:52vh; }
+    .rail { border-left:none; border-top:1px solid var(--line); overflow:visible; }
+    .canvas-scroll { padding:16px 12px 24px; }
+  }
+  @media (max-width: 520px) {
+    .types { grid-template-columns:repeat(3,1fr); }
+    .topbar { padding:10px 12px; }
+  }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="mark">
+      <span class="mark-glyph" aria-hidden="true"><i></i></span>
+      <span>
+        <span class="mark-name">Port Map Studio</span><br>
+        <span class="mark-sub">Rear-panel diagrams</span>
+      </span>
+    </div>
+    <input id="devName" class="devname" type="text" aria-label="Device name" placeholder="Untitled device">
+    <div class="tools">
+      <button class="btn" id="btnTemplates" type="button">Start from template</button>
+      <button class="btn" id="btnLibrary" type="button">Library</button>
+      <button class="btn primary" id="btnExport" type="button">Export SVG</button>
+    </div>
+  </header>
+
+  <main class="workbench">
+    <section class="stage">
+      <div class="stagebar">
+        <div class="zoomgroup" role="group" aria-label="Zoom">
+          <button id="zoomOut" type="button" aria-label="Zoom out">&minus;</button>
+          <span class="zoomval mono" id="zoomVal">100%</span>
+          <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+          <button id="zoomFit" type="button">Fit</button>
+        </div>
+        <span id="dims" class="mono"></span>
+        <span class="hint"><span class="kbd">Click</span> a port to edit it</span>
+      </div>
+      <div class="canvas-scroll" id="canvasScroll">
+        <div class="canvas-inner" id="canvas"></div>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <div class="panel" id="inspector"></div>
+      <div class="panel" id="structure"></div>
+    </aside>
+  </main>
+</div>
+
+<dialog id="modal">
+  <div class="dlg-head">
+    <h2 id="dlgTitle">Dialog</h2>
+    <button class="btn ghost sm" id="dlgClose" type="button">Close</button>
+  </div>
+  <div class="dlg-body" id="dlgBody"></div>
+  <div class="dlg-foot" id="dlgFoot"></div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     1. Drawing constants — the vertical rhythm every device shares
+     ============================================================ */
+  const SVG_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+  const GEO = {
+    viewTop: 0, viewH: 280,
+    chassisY: 25, chassisH: 235,
+    bayY: 88, bayH: 145,
+    headBase: 108,     // bay title baseline
+    bandCY: 145,       // vertical centre of every connector graphic
+    idBase: 175,       // port id line
+    pillY: 181, pillH: 15,
+    pillBase: 192,     // badge text
+    detailBase: 205,   // detail line
+    footY: 214, footH: 12, footBase: 223,
+    bayGap: 12, bayPad: 15, portGap: 9,
+    firstBayX: 36, chassisPad: 16, outerPad: 20,
+    topLabelBase: 34, topCY: 49
+  };
+
+  const STATUS = {
+    connected: { name:"Connected", body:"#1e293b", stroke:"#10b981", sw:2.5, glow:"glow-connected",
+                 pill:"#064e3b", pillStroke:"#10b981", id:"#10b981", label:"#6ee7b7", bold:true,
+                 detail:"#94a3b8", dot:"#10b981", ui:"var(--ok)" },
+    open:      { name:"Open", body:"#0f172a", stroke:"#475569", sw:1.5, glow:"",
+                 pill:"#1e293b", pillStroke:"#334155", id:"#64748b", label:"#64748b", bold:false,
+                 detail:"#475569", dot:"#334155", ui:"var(--idle)" },
+    unknown:   { name:"Unknown", body:"#1e293b", stroke:"#f59e0b", sw:2, glow:"",
+                 pill:"#422006", pillStroke:"#b45309", id:"#f59e0b", label:"#fcd34d", bold:true,
+                 detail:"#94a3b8", dot:"#f59e0b", ui:"var(--warn)" },
+    fault:     { name:"Fault", body:"#1e293b", stroke:"#f43f5e", sw:2.5, glow:"glow-fault",
+                 pill:"#4c0519", pillStroke:"#f43f5e", id:"#f43f5e", label:"#fda4af", bold:true,
+                 detail:"#94a3b8", dot:"#f43f5e", ui:"var(--bad)" }
+  };
+  const STATUS_KEYS = ["connected", "open", "unknown", "fault"];
+
+  /* ============================================================
+     2. Connector library
+     Every type declares its footprint and draws itself centred
+     on (cx, cy). Keeping the footprint here is what lets the
+     layout engine centre things automatically.
+     ============================================================ */
+  const TYPES = {
+    rj45: { name:"RJ45", w:38, h:42, poe:true, draw(cx, cy, s, p) {
+      const x = cx - 19, y = cy - 21;
+      return `<rect x="${x}" y="${y}" width="38" height="42" rx="4" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<rect x="${x + 10}" y="${y}" width="18" height="8" fill="#0f172a"/>`
+        + `<line x1="${x + 6}" y1="${y + 32}" x2="${x + 32}" y2="${y + 32}" stroke="#fbbf24" stroke-width="2" stroke-dasharray="2,2"/>`
+        + `<circle cx="${x + 5}" cy="${y + 6}" r="2" fill="${s.dot}"/>`
+        + (p && p.poe ? `<circle cx="${x + 33}" cy="${y + 6}" r="2" fill="#fbbf24"/>` : "");
+    }},
+    sfp: { name:"SFP cage", w:34, h:26, draw(cx, cy, s) {
+      const x = cx - 17, y = cy - 13;
+      return `<rect x="${x}" y="${y}" width="34" height="26" rx="2" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<rect x="${x + 4}" y="${y + 6}" width="26" height="11" rx="1" fill="#020617"/>`
+        + `<line x1="${x + 4}" y1="${y + 21}" x2="${x + 30}" y2="${y + 21}" stroke="#475569" stroke-width="1.5"/>`;
+    }},
+    hdmi: { name:"HDMI", w:42, h:30, draw(cx, cy, s) {
+      const x = cx - 21, y = cy - 15;
+      return `<path d="M ${x} ${y} L ${x + 42} ${y} L ${x + 42} ${y + 20} L ${x + 35} ${y + 30} L ${x + 7} ${y + 30} L ${x} ${y + 20} Z" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<rect x="${x + 7}" y="${y + 10}" width="28" height="7" rx="1" fill="#020617"/>`;
+    }},
+    dp: { name:"DisplayPort", w:38, h:26, draw(cx, cy, s) {
+      const x = cx - 19, y = cy - 13;
+      return `<path d="M ${x} ${y} L ${x + 38} ${y} L ${x + 38} ${y + 20} L ${x + 32} ${y + 26} L ${x} ${y + 26} Z" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<rect x="${x + 6}" y="${y + 9}" width="26" height="8" rx="1" fill="#020617"/>`;
+    }},
+    usba: { name:"USB-A", w:18, h:36, draw(cx, cy, s) {
+      const x = cx - 9, y = cy - 18;
+      return `<rect x="${x}" y="${y}" width="18" height="36" rx="2" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<rect x="${x + 3}" y="${y + 4}" width="5" height="28" fill="#b2c2db"/>`;
+    }},
+    usbc: { name:"USB-C", w:38, h:20, draw(cx, cy, s) {
+      const x = cx - 19, y = cy - 10;
+      return `<rect x="${x}" y="${y}" width="38" height="20" rx="7" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<rect x="${x + 6}" y="${y + 6}" width="26" height="8" rx="3" fill="#020617"/>`;
+    }},
+    jack35: { name:"3.5mm", w:26, h:26, draw(cx, cy, s) {
+      return `<circle cx="${cx}" cy="${cy}" r="12" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<circle cx="${cx}" cy="${cy}" r="5" fill="#020617" stroke="${s.stroke}" stroke-width="0.8"/>`
+        + `<circle cx="${cx}" cy="${cy}" r="1.5" fill="#fbbf24"/>`;
+    }},
+    xlr: { name:"XLR", w:32, h:32, draw(cx, cy, s) {
+      return `<circle cx="${cx}" cy="${cy}" r="15" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<circle cx="${cx}" cy="${cy}" r="10" fill="#020617"/>`
+        + `<circle cx="${cx}" cy="${cy - 4}" r="2" fill="#94a3b8"/>`
+        + `<circle cx="${cx - 4}" cy="${cy + 3}" r="2" fill="#94a3b8"/>`
+        + `<circle cx="${cx + 4}" cy="${cy + 3}" r="2" fill="#94a3b8"/>`;
+    }},
+    db9: { name:"Serial DB9", w:44, h:20, draw(cx, cy, s) {
+      const x = cx - 22, y = cy - 10;
+      let pins = "";
+      for (let i = 0; i < 5; i++) pins += `<circle cx="${x + 9 + i * 6.5}" cy="${y + 7}" r="1.4" fill="#94a3b8"/>`;
+      for (let i = 0; i < 4; i++) pins += `<circle cx="${x + 12 + i * 6.5}" cy="${y + 13}" r="1.4" fill="#94a3b8"/>`;
+      return `<path d="M ${x + 3} ${y} L ${x + 41} ${y} L ${x + 44} ${y + 20} L ${x} ${y + 20} Z" fill="${s.body}" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>` + pins;
+    }},
+    c14: { name:"AC inlet", w:56, h:44, draw(cx, cy, s) {
+      const x = cx - 28, y = cy - 22;
+      return `<path d="M ${x + 8} ${y} L ${x + 48} ${y} L ${x + 56} ${y + 14} L ${x + 56} ${y + 44} L ${x} ${y + 44} L ${x} ${y + 14} Z" fill="#020617" stroke="${s.stroke}" stroke-width="${s.sw}"${cls(s)}/>`
+        + `<rect x="${x + 10}" y="${y + 12}" width="4" height="12" rx="1" fill="#94a3b8"/>`
+        + `<rect x="${x + 42}" y="${y + 12}" width="4" height="12" rx="1" fill="#94a3b8"/>`
+        + `<rect x="${x + 26}" y="${y + 28}" width="4" height="10" rx="1" fill="#94a3b8"/>`;
+    }},
+    rocker: { name:"Power switch", w:28, h:50, draw(cx, cy, s) {
+      const x = cx - 14, y = cy - 25;
+      return `<rect x="${x}" y="${y}" width="28" height="50" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>`
+        + `<rect x="${x + 2}" y="${y + 2}" width="24" height="23" rx="2" fill="#0f172a" stroke="${s.stroke}" stroke-width="1"/>`
+        + `<text x="${cx}" y="${y + 17}" text-anchor="middle" fill="${s.stroke}" font-size="12" font-weight="bold">|</text>`
+        + `<rect x="${x + 2}" y="${y + 25}" width="24" height="23" rx="2" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>`
+        + `<text x="${cx}" y="${y + 40}" text-anchor="middle" fill="#64748b" font-size="11">&#9675;</text>`;
+    }},
+    microusb: { name:"Micro-USB", w:24, h:14, draw(cx, cy, s) {
+      const x = cx - 12, y = cy - 7;
+      return `<rect x="${x}" y="${y}" width="24" height="14" rx="3" fill="${s.body}" stroke="${s.stroke}" stroke-width="${Math.min(s.sw, 1.5)}"${cls(s)}/>`
+        + `<rect x="${x + 4}" y="${y + 4}" width="16" height="5" rx="2" fill="#020617"/>`;
+    }},
+    pinhole: { name:"Pinhole", w:20, h:20, draw(cx, cy, s) {
+      return `<circle cx="${cx}" cy="${cy}" r="7" fill="#0f172a" stroke="${s.stroke}" stroke-width="1"/>`
+        + `<circle cx="${cx}" cy="${cy}" r="3" fill="#475569"/>`;
+    }},
+    antenna: { name:"Antenna", w:24, h:24, draw(cx, cy, s) {
+      return `<circle cx="${cx}" cy="${cy}" r="10" fill="#1e293b" stroke="${s.stroke}" stroke-width="1.5"/>`
+        + `<circle cx="${cx}" cy="${cy}" r="6.5" fill="url(#goldAntenna)" stroke="#475569" stroke-width="1"/>`
+        + `<circle cx="${cx}" cy="${cy}" r="2.5" fill="#020617"/>`;
+    }},
+    klock: { name:"K-Lock", w:22, h:12, draw(cx, cy, s) {
+      return `<rect x="${cx - 9}" y="${cy - 5}" width="18" height="10" rx="3.5" fill="#020617" stroke="${s.stroke}" stroke-width="1"/>`;
+    }},
+    led: { name:"Status LED", w:16, h:16, draw(cx, cy, s) {
+      return `<circle cx="${cx}" cy="${cy}" r="5" fill="${s.stroke}"${cls(s)}/>`
+        + `<circle cx="${cx}" cy="${cy}" r="7.5" fill="none" stroke="#334155" stroke-width="1"/>`;
+    }},
+    blank: { name:"Blanking plate", w:34, h:30, draw(cx, cy, s) {
+      const x = cx - 17, y = cy - 15;
+      return `<rect x="${x}" y="${y}" width="34" height="30" rx="3" fill="#0b1220" stroke="#334155" stroke-width="1.2" stroke-dasharray="4,3"/>`;
+    }}
+  };
+  const TYPE_KEYS = Object.keys(TYPES);
+
+  function cls(s) { return s.glow ? ` class="${s.glow}"` : ""; }
+
+  /* ============================================================
+     3. Text measurement — real metrics, so badges size to content
+     ============================================================ */
+  const mctx = document.createElement("canvas").getContext("2d");
+  const measureCache = new Map();
+  function textW(str, size, weight) {
+    if (!str) return 0;
+    const key = size + "|" + weight + "|" + str;
+    let v = measureCache.get(key);
+    if (v === undefined) {
+      mctx.font = `${weight} ${size}px ${SVG_FONT}`;
+      v = mctx.measureText(str).width;
+      measureCache.set(key, v);
+    }
+    return v;
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+  function slug(s, fallback) {
+    const out = String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return out || fallback;
+  }
+  const r1 = (n) => Math.round(n * 10) / 10;
+
+  /* ============================================================
+     4. Layout engine
+     Bays size to their contents; ports are centred inside the bay;
+     every badge lands on the same baseline across the whole device.
+     ============================================================ */
+  function layout(model) {
+    const bays = model.bays.map((bay) => {
+      const ports = bay.ports.map((p) => {
+        const t = TYPES[p.type] || TYPES.blank;
+        const idW = textW(p.pid, 9, "bold");
+        const labelW = textW(p.label, 8, p.status === "connected" || p.status === "unknown" || p.status === "fault" ? "bold" : "400");
+        const detailW = textW(p.detail, 7, "400");
+        const pillW = p.label ? Math.max(labelW + 16, 30) : 0;
+        const slot = Math.max(t.w, pillW, detailW + 4, idW + 4);
+        return { port: p, type: t, slot, pillW };
+      });
+      const content = ports.reduce((a, p) => a + p.slot, 0) + Math.max(0, ports.length - 1) * GEO.portGap;
+      const headW = textW(bay.title, 10, "600");
+      const footW = textW(bay.footer, 8, "400");
+      const width = Math.max(content + GEO.bayPad * 2, headW + 28, footW + 28, 96);
+      return { bay, ports, width, content };
+    });
+
+    const baysW = bays.reduce((a, b) => a + b.width, 0) + Math.max(0, bays.length - 1) * GEO.bayGap;
+    let x = GEO.firstBayX;
+    bays.forEach((b) => {
+      b.x = x;
+      let px = x + (b.width - b.content) / 2;      // <- ports are always centred
+      b.ports.forEach((p) => { p.cx = px + p.slot / 2; px += p.slot + GEO.portGap; });
+      x += b.width + GEO.bayGap;
+    });
+
+    const chassisX = GEO.firstBayX - GEO.chassisPad;
+    const chassisW = Math.max(baysW + GEO.chassisPad * 2, 320);
+    const viewW = chassisX + chassisW + GEO.outerPad;
+    return { bays, chassisX, chassisW, viewW, viewH: GEO.viewH };
+  }
+
+  /* ============================================================
+     5. SVG builder
+     ============================================================ */
+  function buildSVG(model, opts) {
+    opts = opts || {};
+    const L = layout(model);
+    const id = "panel-" + slug(model.name, "device");
+    const used = Object.create(null);
+    const out = [];
+
+    out.push(`<svg xmlns="http://www.w3.org/2000/svg" id="${esc(id)}" viewBox="0 0 ${r1(L.viewW)} ${L.viewH}" width="${r1(L.viewW)}" height="${L.viewH}" font-family="${SVG_FONT}">`);
+    out.push(`<style>
+    text { font-family: ${SVG_FONT}; -webkit-font-smoothing: antialiased; }
+    .glow-connected { filter: drop-shadow(0 0 8px #10b981) drop-shadow(0 0 14px rgba(16,185,129,.4)); }
+    .glow-fault { filter: drop-shadow(0 0 8px #f43f5e) drop-shadow(0 0 14px rgba(244,63,94,.4)); }
+    .port-interactive { cursor: pointer; }
+  </style>`);
+    out.push(`<defs>
+    <linearGradient id="chassisGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#1e293b"/><stop offset="50%" stop-color="#0f172a"/><stop offset="100%" stop-color="#020617"/></linearGradient>
+    <linearGradient id="metalBezel" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#475569"/><stop offset="50%" stop-color="#64748b"/><stop offset="100%" stop-color="#334155"/></linearGradient>
+    <linearGradient id="bayRecess" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#050811"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+    <linearGradient id="goldAntenna" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#b45309"/></linearGradient>
+  </defs>`);
+
+    // chassis
+    const cx0 = r1(L.chassisX), cw = r1(L.chassisW);
+    out.push(`<rect x="${cx0}" y="${GEO.chassisY}" width="${cw}" height="${GEO.chassisH}" rx="16" fill="url(#metalBezel)" stroke="#334155" stroke-width="2"/>`);
+    out.push(`<rect x="${cx0 + 4}" y="${GEO.chassisY + 4}" width="${r1(cw - 8)}" height="${GEO.chassisH - 8}" rx="14" fill="url(#chassisGrad)"/>`);
+    [[cx0 + 16, 41], [cx0 + cw - 16, 41], [cx0 + 16, 245], [cx0 + cw - 16, 245]].forEach(([sx, sy]) => {
+      out.push(`<circle cx="${r1(sx)}" cy="${sy}" r="3.5" fill="#64748b" stroke="#334155"/><line x1="${r1(sx - 3)}" y1="${sy}" x2="${r1(sx + 3)}" y2="${sy}" stroke="#1e293b"/>`);
+    });
+
+    // brand + model
+    const brandX = cx0 + 25;
+    let brandEnd = brandX;
+    if (model.brand) {
+      out.push(`<text x="${r1(brandX)}" y="68" fill="#94a3b8" font-size="14" font-weight="800" letter-spacing="1">${esc(model.brand)}</text>`);
+      brandEnd = brandX + textW(model.brand, 14, "800") + 12;
+    }
+    if (model.model) {
+      out.push(`<text x="${r1(brandEnd)}" y="68" fill="#64748b" font-size="12" font-weight="500">${esc(model.model)}</text>`);
+      brandEnd += textW(model.model, 12, "500");
+    }
+
+    // top strip: evenly spread, with vent louvres auto-filling the gaps
+    const items = model.topItems || [];
+    const stripL = cx0 + 150, stripR = cx0 + cw - 34;
+    if (items.length && stripR > stripL) {
+      const step = (stripR - stripL) / items.length;
+      const marks = [];
+      items.forEach((it, i) => {
+        const t = TYPES[it.type] || TYPES.antenna;
+        const s = STATUS[it.status] || STATUS.open;
+        const ix = stripL + step * i + step / 2;
+        marks.push({ x: ix, half: Math.max(t.w, textW(it.label, 7.5, "bold")) / 2 + 6 });
+        out.push(`<g class="port-interactive" data-top="${i}">`);
+        out.push(t.draw(r1(ix), GEO.topCY, s, it));
+        if (it.label) out.push(`<text x="${r1(ix)}" y="${GEO.topLabelBase}" text-anchor="middle" fill="${s === STATUS.open ? "#94a3b8" : s.id}" font-size="7.5" font-weight="bold">${esc(it.label)}</text>`);
+        out.push(`</g>`);
+      });
+      let vx = cx0 + 128;
+      marks.forEach((m) => {
+        if (m.x - m.half > vx + 8) out.push(vent(vx, m.x - m.half));
+        vx = m.x + m.half;
+      });
+      if (stripR + 14 > vx + 8) out.push(vent(vx, stripR + 14));
+    } else {
+      out.push(vent(cx0 + 128, cx0 + cw - 20));
+    }
+
+    // bays
+    L.bays.forEach((b, bi) => {
+      const bay = b.bay;
+      const bx = r1(b.x), bw = r1(b.width), mid = r1(b.x + b.width / 2);
+      out.push(`<g class="bay" data-bay="${bi}">`);
+      out.push(`<rect x="${bx}" y="${GEO.bayY}" width="${bw}" height="${GEO.bayH}" rx="8" fill="url(#bayRecess)" stroke="#334155" stroke-width="1"/>`);
+      if (bay.title) out.push(`<text x="${mid}" y="${GEO.headBase}" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600">${esc(bay.title)}</text>`);
+
+      b.ports.forEach((pl) => {
+        const p = pl.port, s = STATUS[p.status] || STATUS.open;
+        let key = slug(p.pid || p.label || pl.type.name, pl.type.name);
+        if (used[key]) { used[key]++; key = key + "-" + used[key]; } else { used[key] = 1; }
+        const pcx = r1(pl.cx);
+        out.push(`<g id="port-${esc(key)}" class="port-interactive" data-port="${esc(key)}" data-type="${esc(p.type)}" data-status="${esc(p.status)}">`);
+        out.push(pl.type.draw(pcx, GEO.bandCY, s, p));
+        if (p.pid) out.push(`<text x="${pcx}" y="${GEO.idBase}" text-anchor="middle" fill="${s.id}" font-size="9" font-weight="bold">${esc(p.pid)}</text>`);
+        if (p.label) {
+          out.push(`<rect x="${r1(pl.cx - pl.pillW / 2)}" y="${GEO.pillY}" width="${r1(pl.pillW)}" height="${GEO.pillH}" rx="4" fill="${s.pill}" stroke="${s.pillStroke}" stroke-width="0.5"/>`);
+          out.push(`<text x="${pcx}" y="${GEO.pillBase}" text-anchor="middle" fill="${s.label}" font-size="8"${s.bold ? ' font-weight="bold"' : ""}>${esc(p.label)}</text>`);
+        }
+        if (p.detail) out.push(`<text x="${pcx}" y="${GEO.detailBase}" text-anchor="middle" fill="${s.detail}" font-size="7">${esc(p.detail)}</text>`);
+        out.push(`</g>`);
+      });
+
+      if (bay.footer) {
+        const fw = Math.min(bw - 20, Math.max(textW(bay.footer, 8, "400") + 24, 60));
+        out.push(`<rect x="${r1(b.x + b.width / 2 - fw / 2)}" y="${GEO.footY}" width="${r1(fw)}" height="${GEO.footH}" rx="3" fill="#0f172a"/>`);
+        out.push(`<text x="${mid}" y="${GEO.footBase}" text-anchor="middle" fill="#64748b" font-size="8">${esc(bay.footer)}</text>`);
+      }
+      out.push(`</g>`);
+    });
+
+    // editor-only selection ring — never part of an export
+    if (opts.selection) {
+      const sel = findGeom(L, opts.selection);
+      if (sel) out.push(`<rect x="${r1(sel.x)}" y="${r1(sel.y)}" width="${r1(sel.w)}" height="${r1(sel.h)}" rx="6" fill="none" stroke="#7a9bf0" stroke-width="1.5" stroke-dasharray="5,3" pointer-events="none"/>`);
+    }
+    // editor-only hit targets, drawn last so they sit on top
+    if (opts.interactive) {
+      L.bays.forEach((b, bi) => {
+        out.push(`<rect class="port-hit" data-hit-bay="${bi}" x="${r1(b.x)}" y="${GEO.bayY}" width="${r1(b.width)}" height="${GEO.bayH}" fill="transparent"/>`);
+        b.ports.forEach((pl, pi) => {
+          out.push(`<rect class="port-hit" data-hit-bay="${bi}" data-hit-port="${pi}" x="${r1(pl.cx - pl.slot / 2 - 3)}" y="118" width="${r1(pl.slot + 6)}" height="92" fill="transparent"/>`);
+        });
+      });
+    }
+
+    out.push(`</svg>`);
+    return { svg: out.join("\n"), layout: L };
+  }
+
+  function vent(x1, x2) {
+    return `<g opacity="0.55"><line x1="${r1(x1)}" y1="46" x2="${r1(x2)}" y2="46" stroke="#475569" stroke-width="2.5" stroke-dasharray="4,4"/>`
+      + `<line x1="${r1(x1)}" y1="52" x2="${r1(x2)}" y2="52" stroke="#475569" stroke-width="2.5" stroke-dasharray="4,4"/></g>`;
+  }
+
+  function findGeom(L, sel) {
+    const b = L.bays[sel.bay];
+    if (!b) return null;
+    if (sel.port == null) return { x: b.x - 3, y: GEO.bayY - 3, w: b.width + 6, h: GEO.bayH + 6 };
+    const p = b.ports[sel.port];
+    if (!p) return null;
+    return { x: p.cx - p.slot / 2 - 5, y: 118, w: p.slot + 10, h: 92 };
+  }
+
+  /* ============================================================
+     6. Model helpers
+     ============================================================ */
+  let uid = 0;
+  const nid = () => "p" + (++uid) + Date.now().toString(36).slice(-3);
+
+  function newPort(type, over) {
+    return Object.assign({ id: nid(), type: type || "rj45", status: "open", pid: "", label: "", detail: "", poe: false }, over || {});
+  }
+  function newBay(title) {
+    return { id: nid(), title: title || "NEW BAY", footer: "", ports: [newPort("rj45")] };
+  }
+  function blankDevice() {
+    return {
+      name: "Untitled device", brand: "", model: "",
+      topItems: [],
+      bays: [{ id: nid(), title: "PORTS", footer: "", ports: [newPort("rj45", { pid: "1" }), newPort("rj45", { pid: "2" })] }]
+    };
+  }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  /* ============================================================
+     7. Templates
+     ============================================================ */
+  function tplCodecEQ() {
+    const P = (type, status, pid, label, detail, extra) => newPort(type, Object.assign({ status, pid, label, detail }, extra || {}));
+    return {
+      name: "Cisco Codec EQ — Room Bar", brand: "CISCO", model: "Codec EQ",
+      topItems: [
+        { type: "antenna", status: "connected", label: "Wi-Fi" },
+        { type: "antenna", status: "connected", label: "Wi-Fi" },
+        { type: "antenna", status: "connected", label: "Bluetooth" },
+        { type: "klock", status: "open", label: "K-Lock" }
+      ],
+      bays: [
+        { id: nid(), title: "POWER & SWITCH", footer: "MAIN POWER", ports: [
+          P("c14", "connected", "", "100-240V", "Plugged In"),
+          P("rocker", "connected", "", "SWITCH", "ON (Active)")
+        ]},
+        { id: nid(), title: "ETHERNET & POE++ (5 PORTS)", footer: "4x POE++ PORTS + 1x LAN UPLINK", ports: [
+          P("rj45", "connected", "PoE 1", "Quad Cam", "", { poe: true }),
+          P("rj45", "connected", "PoE 2", "Navigator", "", { poe: true }),
+          P("rj45", "unknown", "PoE 3", "Mic ?", "", { poe: true }),
+          P("rj45", "unknown", "PoE 4", "Mic ?", "", { poe: true }),
+          P("rj45", "connected", "LAN", "Fi2/0/17", "Uplink")
+        ]},
+        { id: nid(), title: "VIDEO OUTPUT (DISPLAYS)", footer: "HDMI 2.0 (UP TO 4Kp60)", ports: [
+          P("hdmi", "connected", "OUT 1", "LEFT DISP", "Samsung 75\""),
+          P("hdmi", "connected", "OUT 2", "RIGHT DISP", "Samsung 75\""),
+          P("hdmi", "open", "OUT 3", "SPARE", "Empty")
+        ]},
+        { id: nid(), title: "VIDEO INPUTS", footer: "CAMERA & PRESENTATION INPUTS", ports: [
+          P("hdmi", "connected", "IN 1", "Quad Cam", "Main Feed"),
+          P("hdmi", "open", "IN 2", "Open", "Table HDMI 1"),
+          P("hdmi", "open", "IN 3", "Open", "Table HDMI 2"),
+          P("usbc", "open", "USB-C", "BYOD", "DP Alt-Mode")
+        ]},
+        { id: nid(), title: "USB 3.0 & SERVICE", footer: "4x USB 3.0 + SERVICE INTERFACE", ports: [
+          P("usba", "open", "1", "", ""), P("usba", "open", "2", "", ""),
+          P("usba", "open", "3", "", ""), P("usba", "open", "4", "", ""),
+          P("microusb", "open", "uUSB", "", "Service"),
+          P("pinhole", "open", "RESET", "", "Pinhole")
+        ]},
+        { id: nid(), title: "AUDIO I/O (3.5mm)", footer: "3x MIC IN + 1x LINE OUT", ports: [
+          P("jack35", "open", "", "Mic 1", "Open"),
+          P("jack35", "open", "", "Mic 2", "Open"),
+          P("jack35", "open", "", "Mic 3", "Open"),
+          P("jack35", "connected", "Line Out", "Speakers", "Room Amp")
+        ]}
+      ]
+    };
+  }
+
+  function tplSwitch() {
+    const access = (from, count, states) => {
+      const arr = [];
+      for (let i = 0; i < count; i++) {
+        arr.push(newPort("rj45", { status: states[i % states.length], pid: String(from + i), poe: true }));
+      }
+      return arr;
+    };
+    return {
+      name: "Access Switch — IDF 2", brand: "CISCO", model: "Catalyst 9200-24P",
+      topItems: [],
+      bays: [
+        { id: nid(), title: "ACCESS PORTS 1-12 (PoE+)", footer: "DATA / VOICE — VLAN 20/120", ports: access(1, 12, ["connected", "connected", "open", "connected"]) },
+        { id: nid(), title: "ACCESS PORTS 13-24 (PoE+)", footer: "DATA / VOICE — VLAN 20/120", ports: access(13, 12, ["open", "connected", "open", "open"]) },
+        { id: nid(), title: "UPLINKS", footer: "10G SFP+ TO CORE", ports: [
+          newPort("sfp", { status: "connected", pid: "Te1/1/1", label: "CORE-A", detail: "10G LR" }),
+          newPort("sfp", { status: "connected", pid: "Te1/1/2", label: "CORE-B", detail: "10G LR" }),
+          newPort("sfp", { status: "open", pid: "Te1/1/3", label: "Spare", detail: "" }),
+          newPort("sfp", { status: "fault", pid: "Te1/1/4", label: "ERR-DISABLE", detail: "Check optic" })
+        ]},
+        { id: nid(), title: "MANAGEMENT", footer: "OUT-OF-BAND", ports: [
+          newPort("db9", { status: "open", pid: "CON", label: "Console", detail: "9600 8N1" }),
+          newPort("rj45", { status: "connected", pid: "MGMT", label: "OOB", detail: "10.20.9.14" }),
+          newPort("usba", { status: "open", pid: "USB", label: "", detail: "" })
+        ]},
+        { id: nid(), title: "POWER", footer: "DUAL FRU PSU", ports: [
+          newPort("c14", { status: "connected", pid: "", label: "PSU 1", detail: "Rack PDU A" }),
+          newPort("c14", { status: "unknown", pid: "", label: "PSU 2", detail: "PDU B ?" })
+        ]}
+      ]
+    };
+  }
+
+  function tplServer() {
+    return {
+      name: "App Server — Rack 4", brand: "DELL", model: "PowerEdge R650 (1U)",
+      topItems: [],
+      bays: [
+        { id: nid(), title: "MANAGEMENT", footer: "LIGHTS-OUT", ports: [
+          newPort("rj45", { status: "connected", pid: "iDRAC", label: "OOB", detail: "10.20.9.41" }),
+          newPort("db9", { status: "open", pid: "SERIAL", label: "", detail: "115200" })
+        ]},
+        { id: nid(), title: "EMBEDDED NIC (rNDC)", footer: "2x 10G + 2x 1G", ports: [
+          newPort("sfp", { status: "connected", pid: "P1", label: "LACP", detail: "Leaf-A" }),
+          newPort("sfp", { status: "connected", pid: "P2", label: "LACP", detail: "Leaf-B" }),
+          newPort("rj45", { status: "open", pid: "P3", label: "Open", detail: "" }),
+          newPort("rj45", { status: "open", pid: "P4", label: "Open", detail: "" })
+        ]},
+        { id: nid(), title: "USB & VIDEO", footer: "LOCAL CONSOLE", ports: [
+          newPort("usba", { status: "open", pid: "1", label: "", detail: "" }),
+          newPort("usba", { status: "open", pid: "2", label: "", detail: "" }),
+          newPort("dp", { status: "open", pid: "VGA", label: "Crash cart", detail: "" })
+        ]},
+        { id: nid(), title: "POWER SUPPLIES", footer: "1+1 REDUNDANT — 800W", ports: [
+          newPort("c14", { status: "connected", pid: "", label: "PSU 1", detail: "PDU A / C13" }),
+          newPort("c14", { status: "connected", pid: "", label: "PSU 2", detail: "PDU B / C13" }),
+          newPort("led", { status: "connected", pid: "", label: "HEALTH", detail: "OK" })
+        ]}
+      ]
+    };
+  }
+
+  const TEMPLATES = [
+    { key: "codec", name: "Cisco Codec EQ", note: "AV room bar — the diagram this tool grew out of", make: tplCodecEQ },
+    { key: "switch", name: "24-port access switch", note: "PoE+ access, SFP+ uplinks, console & dual PSU", make: tplSwitch },
+    { key: "server", name: "1U rack server", note: "iDRAC, rNDC NICs, local console, redundant power", make: tplServer },
+    { key: "blank", name: "Blank device", note: "Start from an empty chassis", make: blankDevice }
+  ];
+
+  /* ============================================================
+     8. State
+     ============================================================ */
+  const LS_WORK = "pms.work.v1";
+  const LS_LIB = "pms.lib.v1";
+
+  let model = null;
+  let sel = null;          // {bay, port?} | null
+  let zoom = 1, autoFit = true;
+  let db = null, downloads = null;
+
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("canvas"), scroll = $("canvasScroll");
+
+  function loadWork() {
+    try {
+      const raw = localStorage.getItem(LS_WORK);
+      if (raw) {
+        const m = JSON.parse(raw);
+        if (m && Array.isArray(m.bays)) return m;
+      }
+    } catch (e) { /* storage unavailable — start fresh */ }
+    return null;
+  }
+  function saveWork() {
+    try { localStorage.setItem(LS_WORK, JSON.stringify(model)); } catch (e) { /* ignore */ }
+  }
+
+  /* ============================================================
+     9. Render
+     ============================================================ */
+  function render() {
+    const built = buildSVG(model, { selection: sel, interactive: true });
+    canvas.innerHTML = built.svg;
+    const svgEl = canvas.querySelector("svg");
+    if (svgEl) {
+      if (autoFit) {
+        const avail = scroll.clientWidth - 32;
+        zoom = Math.min(1.6, Math.max(0.28, avail / built.layout.viewW));
+      }
+      svgEl.setAttribute("width", Math.round(built.layout.viewW * zoom));
+      svgEl.setAttribute("height", Math.round(built.layout.viewH * zoom));
+      $("zoomVal").textContent = Math.round(zoom * 100) + "%";
+      $("dims").textContent = Math.round(built.layout.viewW) + " × " + built.layout.viewH;
+    }
+    $("devName").value = model.name || "";
+    renderInspector();
+    renderStructure();
+    saveWork();
+  }
+
+  canvas.addEventListener("click", (e) => {
+    const hit = e.target.closest("[data-hit-bay]");
+    if (!hit) { sel = null; render(); return; }
+    const bi = +hit.getAttribute("data-hit-bay");
+    const pi = hit.getAttribute("data-hit-port");
+    sel = pi == null ? { bay: bi } : { bay: bi, port: +pi };
+    render();
+  });
+
+  /* ---------- inspector ---------- */
+  function renderInspector() {
+    const el = $("inspector");
+    if (sel && sel.port != null && model.bays[sel.bay] && model.bays[sel.bay].ports[sel.port]) return inspectPort(el);
+    if (sel && model.bays[sel.bay]) return inspectBay(el);
+    return inspectDevice(el);
+  }
+
+  function head(title, sub) {
+    return `<div class="panel-head"><span class="panel-title">${esc(title)}</span>${sub || ""}</div>`;
+  }
+
+  function inspectDevice(el) {
+    const items = model.topItems || [];
+    el.innerHTML = head("Device")
+      + `<p class="panel-note">Click any port on the diagram to edit it.</p>`
+      + `<div class="grid2">
+           <label class="field"><span>Brand</span><input type="text" id="fBrand" value="${esc(model.brand)}" placeholder="CISCO"></label>
+           <label class="field"><span>Model</span><input type="text" id="fModel" value="${esc(model.model)}" placeholder="Codec EQ"></label>
+         </div>`
+      + `<div class="panel-head" style="margin-top:14px"><span class="panel-title">Chassis top</span>
+           <button class="btn ghost sm" id="addTop" type="button">+ Add</button></div>`
+      + (items.length ? `<div class="stack">` + items.map((it, i) => `
+          <div class="liner">
+            <select data-topt="${i}" style="width:104px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px">
+              ${["antenna", "klock", "led", "pinhole"].map((t) => `<option value="${t}"${it.type === t ? " selected" : ""}>${esc(TYPES[t].name)}</option>`).join("")}
+            </select>
+            <input type="text" data-topl="${i}" value="${esc(it.label)}" placeholder="Label">
+            <button class="btn ghost sm danger" data-topdel="${i}" type="button" aria-label="Remove">&times;</button>
+          </div>`).join("") + `</div>`
+        : `<p class="empty-note">No antennas or locks on the top edge.</p>`);
+
+    el.querySelector("#fBrand").oninput = (e) => { model.brand = e.target.value; render(); };
+    el.querySelector("#fModel").oninput = (e) => { model.model = e.target.value; render(); };
+    el.querySelector("#addTop").onclick = () => {
+      model.topItems = model.topItems || [];
+      model.topItems.push({ type: "antenna", status: "connected", label: "Wi-Fi" });
+      render();
+    };
+    el.querySelectorAll("[data-topt]").forEach((s) => s.onchange = (e) => { model.topItems[+s.getAttribute("data-topt")].type = e.target.value; render(); });
+    el.querySelectorAll("[data-topl]").forEach((s) => s.oninput = (e) => { model.topItems[+s.getAttribute("data-topl")].label = e.target.value; render(); });
+    el.querySelectorAll("[data-topdel]").forEach((s) => s.onclick = () => { model.topItems.splice(+s.getAttribute("data-topdel"), 1); render(); });
+  }
+
+  function inspectBay(el) {
+    const bay = model.bays[sel.bay];
+    el.innerHTML = head("Bay", `<button class="btn ghost sm" id="deselect" type="button">Device</button>`)
+      + `<label class="field"><span>Bay title</span><input type="text" id="bTitle" value="${esc(bay.title)}" placeholder="ETHERNET & POE++">
+           <span class="helper">Shown above the ports</span></label>`
+      + `<label class="field"><span>Footer note</span><input type="text" id="bFoot" value="${esc(bay.footer)}" placeholder="4x POE++ PORTS + 1x LAN UPLINK">
+           <span class="helper">The strip along the bottom of the bay</span></label>`
+      + `<div class="rowbtns">
+           <button class="btn sm" id="bLeft" type="button">&#9664; Move</button>
+           <button class="btn sm" id="bRight" type="button">Move &#9654;</button>
+           <button class="btn sm" id="bDup" type="button">Duplicate</button>
+           <button class="btn sm danger" id="bDel" type="button">Delete bay</button>
+         </div>`
+      + `<div class="rowbtns"><button class="btn sm" id="bAddPort" type="button">+ Add port</button></div>`;
+
+    el.querySelector("#deselect").onclick = () => { sel = null; render(); };
+    el.querySelector("#bTitle").oninput = (e) => { bay.title = e.target.value; render(); };
+    el.querySelector("#bFoot").oninput = (e) => { bay.footer = e.target.value; render(); };
+    el.querySelector("#bLeft").onclick = () => moveBay(-1);
+    el.querySelector("#bRight").onclick = () => moveBay(1);
+    el.querySelector("#bDup").onclick = () => {
+      const c = clone(bay); c.id = nid(); c.ports.forEach((p) => p.id = nid());
+      model.bays.splice(sel.bay + 1, 0, c); sel = { bay: sel.bay + 1 }; render();
+    };
+    el.querySelector("#bDel").onclick = () => {
+      if (model.bays.length <= 1) return toast("A device needs at least one bay");
+      model.bays.splice(sel.bay, 1); sel = null; render();
+    };
+    el.querySelector("#bAddPort").onclick = () => openTypePicker(sel.bay);
+  }
+
+  function inspectPort(el) {
+    const bay = model.bays[sel.bay], p = bay.ports[sel.port], t = TYPES[p.type] || TYPES.blank;
+    el.innerHTML = head("Port", `<button class="btn ghost sm" id="deselect" type="button">Done</button>`)
+      + `<p class="panel-note">${esc(bay.title || "Bay")} &middot; position ${sel.port + 1} of ${bay.ports.length}</p>`
+      + `<div class="field"><span>Status</span><div class="segs" id="segs">`
+      + STATUS_KEYS.map((k) => `<button class="seg" type="button" data-st="${k}" aria-pressed="${p.status === k}">
+            <span class="dot" style="background:${STATUS[k].ui}"></span>${esc(STATUS[k].name)}</button>`).join("")
+      + `</div></div>`
+      + `<div class="field"><span>Connector</span><div class="types" id="types">`
+      + TYPE_KEYS.map((k) => `<button class="type" type="button" data-ty="${k}" aria-pressed="${p.type === k}" title="${esc(TYPES[k].name)}">
+            ${miniSVG(k)}<span>${esc(TYPES[k].name)}</span></button>`).join("")
+      + `</div></div>`
+      + (t.poe ? `<label class="field" style="display:flex;gap:8px;align-items:center">
+            <input type="checkbox" id="fPoe"${p.poe ? " checked" : ""}> <span style="margin:0">PoE marker</span></label>` : "")
+      + `<label class="field"><span>Port ID</span><input type="text" id="fPid" value="${esc(p.pid)}" placeholder="PoE 1">
+           <span class="helper">The silkscreen name — <span class="mono">OUT 1</span>, <span class="mono">Te1/1/1</span></span></label>`
+      + `<label class="field"><span>Label</span><input type="text" id="fLabel" value="${esc(p.label)}" placeholder="LEFT DISP">
+           <span class="helper">What's connected. Sits in the badge.</span></label>`
+      + `<label class="field"><span>Detail</span><input type="text" id="fDetail" value="${esc(p.detail)}" placeholder="Samsung 75&quot;">
+           <span class="helper">Small grey line under the badge</span></label>`
+      + `<div class="rowbtns">
+           <button class="btn sm" id="pLeft" type="button">&#9664; Move</button>
+           <button class="btn sm" id="pRight" type="button">Move &#9654;</button>
+           <button class="btn sm" id="pDup" type="button">Duplicate</button>
+           <button class="btn sm danger" id="pDel" type="button">Delete</button>
+         </div>`;
+
+    el.querySelector("#deselect").onclick = () => { sel = { bay: sel.bay }; render(); };
+    el.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => { p.status = b.getAttribute("data-st"); render(); });
+    el.querySelectorAll("[data-ty]").forEach((b) => b.onclick = () => { p.type = b.getAttribute("data-ty"); render(); });
+    const poe = el.querySelector("#fPoe"); if (poe) poe.onchange = (e) => { p.poe = e.target.checked; render(); };
+    bindText(el.querySelector("#fPid"), (v) => { p.pid = v; });
+    bindText(el.querySelector("#fLabel"), (v) => { p.label = v; });
+    bindText(el.querySelector("#fDetail"), (v) => { p.detail = v; });
+    el.querySelector("#pLeft").onclick = () => movePort(-1);
+    el.querySelector("#pRight").onclick = () => movePort(1);
+    el.querySelector("#pDup").onclick = () => {
+      const c = clone(p); c.id = nid();
+      bay.ports.splice(sel.port + 1, 0, c); sel = { bay: sel.bay, port: sel.port + 1 }; render();
+    };
+    el.querySelector("#pDel").onclick = () => {
+      bay.ports.splice(sel.port, 1); sel = { bay: sel.bay }; render();
+    };
+  }
+
+  // keep focus + caret while the diagram redraws on every keystroke
+  function bindText(input, apply) {
+    if (!input) return;
+    input.oninput = (e) => {
+      const pos = e.target.selectionStart, id = e.target.id;
+      apply(e.target.value);
+      render();
+      const again = document.getElementById(id);
+      if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (err) {} }
+    };
+  }
+
+  function miniSVG(key) {
+    const t = TYPES[key], s = STATUS.open;
+    const w = Math.max(t.w, 26) + 8, h = Math.max(t.h, 18) + 6;
+    return `<svg viewBox="0 0 ${w} ${h}" width="${Math.min(w, 44)}" height="${Math.min(h, 30)}" aria-hidden="true">`
+      + `<defs><linearGradient id="goldAntenna" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#b45309"/></linearGradient></defs>`
+      + t.draw(w / 2, h / 2, s, {}) + `</svg>`;
+  }
+
+  function movePort(dir) {
+    const bay = model.bays[sel.bay], i = sel.port, j = i + dir;
+    if (j < 0 || j >= bay.ports.length) return;
+    const [p] = bay.ports.splice(i, 1);
+    bay.ports.splice(j, 0, p);
+    sel = { bay: sel.bay, port: j };
+    render();
+  }
+  function moveBay(dir) {
+    const i = sel.bay, j = i + dir;
+    if (j < 0 || j >= model.bays.length) return;
+    const [b] = model.bays.splice(i, 1);
+    model.bays.splice(j, 0, b);
+    sel = { bay: j };
+    render();
+  }
+
+  /* ---------- structure ---------- */
+  function renderStructure() {
+    const el = $("structure");
+    el.innerHTML = head("Bays", `<button class="btn ghost sm" id="addBay" type="button">+ Add bay</button>`)
+      + model.bays.map((bay, bi) => {
+        const isSel = sel && sel.bay === bi;
+        return `<div class="bay${isSel && sel.port == null ? " sel" : ""}">
+          <div class="bay-top">
+            <input class="bay-title" type="text" data-btitle="${bi}" value="${esc(bay.title)}" placeholder="BAY TITLE">
+            <button class="btn ghost sm" data-bsel="${bi}" type="button" aria-label="Bay settings">&#9881;</button>
+          </div>
+          <div class="chips" data-chips="${bi}">
+            ${bay.ports.map((p, pi) => {
+              const s = STATUS[p.status] || STATUS.open;
+              const name = p.pid || p.label || (TYPES[p.type] || TYPES.blank).name;
+              return `<button class="chip" draggable="true" type="button" data-bay="${bi}" data-port="${pi}"
+                aria-pressed="${isSel && sel.port === pi}"><span class="dot" style="background:${s.ui}"></span><span class="lbl">${esc(name)}</span></button>`;
+            }).join("")}
+            <button class="chip add" type="button" data-add="${bi}">+ Port</button>
+          </div>
+        </div>`;
+      }).join("");
+
+    el.querySelector("#addBay").onclick = () => {
+      model.bays.push(newBay("NEW BAY"));
+      sel = { bay: model.bays.length - 1 };
+      render();
+    };
+    el.querySelectorAll("[data-btitle]").forEach((inp) => {
+      inp.oninput = (e) => {
+        const bi = +inp.getAttribute("data-btitle"), pos = e.target.selectionStart;
+        model.bays[bi].title = e.target.value;
+        render();
+        const again = $("structure").querySelector(`[data-btitle="${bi}"]`);
+        if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (err) {} }
+      };
+    });
+    el.querySelectorAll("[data-bsel]").forEach((b) => b.onclick = () => { sel = { bay: +b.getAttribute("data-bsel") }; render(); });
+    el.querySelectorAll("[data-add]").forEach((b) => b.onclick = () => openTypePicker(+b.getAttribute("data-add")));
+    el.querySelectorAll(".chip[data-port]").forEach((c) => {
+      c.onclick = () => { sel = { bay: +c.getAttribute("data-bay"), port: +c.getAttribute("data-port") }; render(); };
+      c.ondragstart = (e) => {
+        drag = { bay: +c.getAttribute("data-bay"), port: +c.getAttribute("data-port") };
+        c.classList.add("dragging");
+        try { e.dataTransfer.setData("text/plain", "port"); e.dataTransfer.effectAllowed = "move"; } catch (err) {}
+      };
+      c.ondragend = () => { c.classList.remove("dragging"); drag = null; };
+      c.ondragover = (e) => {
+        if (drag && drag.bay === +c.getAttribute("data-bay")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }
+      };
+      c.ondrop = (e) => {
+        if (!drag) return;
+        e.preventDefault();
+        const bi = +c.getAttribute("data-bay"), to = +c.getAttribute("data-port");
+        if (drag.bay !== bi) return;
+        const ports = model.bays[bi].ports;
+        const [p] = ports.splice(drag.port, 1);
+        ports.splice(to, 0, p);
+        sel = { bay: bi, port: to };
+        drag = null;
+        render();
+      };
+    });
+  }
+  let drag = null;
+
+  /* ============================================================
+     10. Dialogs
+     ============================================================ */
+  const modal = $("modal");
+  function openDialog(title, bodyHTML, footHTML) {
+    $("dlgTitle").textContent = title;
+    $("dlgBody").innerHTML = bodyHTML;
+    $("dlgFoot").innerHTML = footHTML || "";
+    if (!modal.open) modal.showModal();
+  }
+  $("dlgClose").onclick = () => modal.close();
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.close(); });
+
+  function openTypePicker(bayIndex) {
+    openDialog("Add a port",
+      `<p class="panel-note">Pick a connector. You can rename it and set what's plugged in afterwards.</p>
+       <div class="field" style="max-width:150px"><span>How many</span>
+         <input type="text" id="pCount" class="mono" value="1" inputmode="numeric"></div>
+       <div class="types" style="grid-template-columns:repeat(auto-fill,minmax(88px,1fr))" id="pickTypes">
+         ${TYPE_KEYS.map((k) => `<button class="type" type="button" data-pick="${k}">${miniSVG(k)}<span>${esc(TYPES[k].name)}</span></button>`).join("")}
+       </div>`);
+    $("dlgBody").querySelectorAll("[data-pick]").forEach((b) => {
+      b.onclick = () => {
+        const n = Math.min(64, Math.max(1, parseInt($("pCount").value, 10) || 1));
+        const bay = model.bays[bayIndex];
+        const start = bay.ports.length;
+        for (let i = 0; i < n; i++) bay.ports.push(newPort(b.getAttribute("data-pick")));
+        sel = { bay: bayIndex, port: start };
+        modal.close();
+        render();
+      };
+    });
+  }
+
+  function openTemplates() {
+    openDialog("Start from a template",
+      `<p class="panel-note">Each one is a real, fully laid-out device — open it and edit from there. Your current work is saved in this browser until you replace it.</p>
+       <div class="cards">
+         ${TEMPLATES.map((t) => `<button class="card" type="button" data-tpl="${t.key}">
+            <span class="thumb">${thumb(t.make())}</span>
+            <b>${esc(t.name)}</b><small>${esc(t.note)}</small></button>`).join("")}
+       </div>`);
+    $("dlgBody").querySelectorAll("[data-tpl]").forEach((b) => {
+      b.onclick = () => {
+        const t = TEMPLATES.find((x) => x.key === b.getAttribute("data-tpl"));
+        model = t.make(); sel = null; autoFit = true;
+        modal.close(); render();
+        toast("Opened " + t.name);
+      };
+    });
+  }
+
+  function thumb(m) {
+    const built = buildSVG(m, {});
+    return built.svg.replace(/^<svg /, '<svg style="width:100%;height:auto" ');
+  }
+
+  function openExport() {
+    const svg = buildSVG(model, {}).svg;
+    const json = JSON.stringify(model, null, 2);
+    const fname = slug(model.name, "device");
+    openDialog("Export",
+      `<div class="tabs">
+         <button class="tab" type="button" data-tab="svg" aria-pressed="true">SVG</button>
+         <button class="tab" type="button" data-tab="json" aria-pressed="false">JSON (design file)</button>
+       </div>
+       <div id="tabSvg">
+         <div class="banner"><span>Ports carry <span class="mono">id</span>, <span class="mono">data-port</span>, <span class="mono">data-type</span> and <span class="mono">data-status</span>, and connected ports keep the <span class="mono">.glow-connected</span> class — so the file drops straight into an app that wires up clicks or live status.</span></div>
+         <textarea class="code mono" id="svgOut" spellcheck="false" readonly></textarea>
+       </div>
+       <div id="tabJson" hidden>
+         <p class="panel-note">Paste a design file here and load it, or copy this one to share it with the team.</p>
+         <textarea class="code mono" id="jsonOut" spellcheck="false"></textarea>
+       </div>`,
+      `<button class="btn" id="expLoad" type="button" hidden>Load pasted JSON</button>
+       <button class="btn" id="expCopy" type="button">Copy</button>
+       <button class="btn primary" id="expSave" type="button">Download .svg</button>`);
+
+    $("svgOut").value = svg;
+    $("jsonOut").value = json;
+    let tab = "svg";
+    const setTab = (t) => {
+      tab = t;
+      $("tabSvg").hidden = t !== "svg";
+      $("tabJson").hidden = t !== "json";
+      $("expLoad").hidden = t !== "json";
+      $("expSave").textContent = t === "svg" ? "Download .svg" : "Download .json";
+      $("dlgBody").querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.getAttribute("data-tab") === t)));
+    };
+    $("dlgBody").querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => setTab(b.getAttribute("data-tab")));
+
+    $("expCopy").onclick = async () => {
+      const text = tab === "svg" ? $("svgOut").value : $("jsonOut").value;
+      try {
+        await navigator.clipboard.writeText(text);
+        toast("Copied to clipboard");
+      } catch (e) {
+        const ta = tab === "svg" ? $("svgOut") : $("jsonOut");
+        ta.focus(); ta.select();
+        toast("Press Ctrl/Cmd + C to copy");
+      }
+    };
+    $("expSave").onclick = async () => {
+      const isSvg = tab === "svg";
+      const data = isSvg ? $("svgOut").value : $("jsonOut").value;
+      if (!downloads) return toast("Downloads aren't available here — use Copy instead");
+      try {
+        await downloads.save({ filename: fname + (isSvg ? ".svg" : ".json"), data });
+        toast("Saved " + fname + (isSvg ? ".svg" : ".json"));
+      } catch (err) {
+        if (err && err.code === "declined") return;
+        toast("Couldn't save the file — use Copy instead");
+      }
+    };
+    $("expLoad").onclick = () => {
+      try {
+        const m = JSON.parse($("jsonOut").value);
+        if (!m || !Array.isArray(m.bays)) throw new Error("bad");
+        model = m; sel = null; autoFit = true; modal.close(); render();
+        toast("Design loaded");
+      } catch (e) {
+        toast("That isn't a valid design file");
+      }
+    };
+  }
+
+  /* ============================================================
+     11. Library — shared through db when available, otherwise local
+     ============================================================ */
+  let libUnsub = null, libDocs = [];
+
+  function openLibrary() {
+    const shared = !!db;
+    const draw = () => {
+      const items = shared ? libDocs : localLib();
+      openDialog("Library",
+        `<div class="banner">
+           <span>${shared
+             ? "Saved designs are shared with everyone in your organisation who can open this page."
+             : "Shared saving isn't available in this view, so designs are kept in this browser only. Use Export &rarr; JSON to pass one to a colleague."}</span>
+         </div>
+         <div class="field"><span>Save the current device as</span>
+           <div class="liner"><input type="text" id="libName" value="${esc(model.name)}">
+           <button class="btn primary sm" id="libSave" type="button">Save</button></div></div>
+         <div style="margin-top:14px">
+           ${items.length ? items.map((it) => `
+             <div class="libitem">
+               <div class="grow"><b>${esc(it.name)}</b><small>${esc(it.bays)} bays &middot; ${esc(it.ports)} ports &middot; ${esc(it.when)}</small></div>
+               <button class="btn sm" data-open="${esc(it.key)}" type="button">Open</button>
+               <button class="btn ghost sm danger" data-del="${esc(it.key)}" type="button">Delete</button>
+             </div>`).join("") : `<p class="empty-note">Nothing saved yet.</p>`}
+         </div>`);
+
+      $("libSave").onclick = () => saveToLibrary($("libName").value.trim() || "Untitled device").then(draw);
+      $("dlgBody").querySelectorAll("[data-open]").forEach((b) => b.onclick = () => openFromLibrary(b.getAttribute("data-open")));
+      $("dlgBody").querySelectorAll("[data-del]").forEach((b) => b.onclick = () => delFromLibrary(b.getAttribute("data-del")).then(draw));
+    };
+    draw();
+    if (shared && !libUnsub) subscribeLib(draw);
+  }
+
+  function summarise(m, key, when) {
+    return {
+      key, name: m.name || "Untitled device",
+      bays: m.bays.length,
+      ports: m.bays.reduce((a, b) => a + b.ports.length, 0),
+      when: when ? new Date(when).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"
+    };
+  }
+
+  function localLib() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(LS_LIB) || "[]");
+      return raw.map((r) => summarise(r.model, r.key, r.when));
+    } catch (e) { return []; }
+  }
+
+  async function saveToLibrary(name) {
+    const m = clone(model); m.name = name;
+    const key = slug(name, "device") + "-" + Date.now().toString(36).slice(-4);
+    if (db) {
+      try {
+        await db.collection("devices").doc(key).set({ name, when: Date.now(), model: JSON.stringify(m) });
+        toast("Saved to the team library");
+        return;
+      } catch (e) {
+        toast(e && e.code === "quota_exceeded" ? "The library is full — delete a design first" : "Couldn't save to the shared library");
+        return;
+      }
+    }
+    try {
+      const raw = JSON.parse(localStorage.getItem(LS_LIB) || "[]");
+      raw.unshift({ key, when: Date.now(), model: m });
+      localStorage.setItem(LS_LIB, JSON.stringify(raw.slice(0, 40)));
+      toast("Saved in this browser");
+    } catch (e) { toast("This browser is blocking storage"); }
+  }
+
+  async function openFromLibrary(key) {
+    if (db) {
+      const hit = libDocs.find((d) => d.key === key);
+      if (hit && hit.model) { model = hit.model; sel = null; autoFit = true; modal.close(); render(); toast("Opened " + model.name); }
+      return;
+    }
+    try {
+      const raw = JSON.parse(localStorage.getItem(LS_LIB) || "[]");
+      const rec = raw.find((r) => r.key === key);
+      if (rec) { model = rec.model; sel = null; autoFit = true; modal.close(); render(); toast("Opened " + model.name); }
+    } catch (e) { toast("Couldn't open that design"); }
+  }
+
+  async function delFromLibrary(key) {
+    if (db) {
+      try { await db.collection("devices").doc(key).delete(); } catch (e) { toast("Couldn't delete that design"); }
+      return;
+    }
+    try {
+      const raw = JSON.parse(localStorage.getItem(LS_LIB) || "[]");
+      localStorage.setItem(LS_LIB, JSON.stringify(raw.filter((r) => r.key !== key)));
+    } catch (e) { /* ignore */ }
+  }
+
+  function subscribeLib(onChange) {
+    try {
+      libUnsub = db.collection("devices").limit(200).onSnapshot((snap) => {
+        libDocs = snap.docs.map((d) => {
+          const data = d.data() || {};
+          let m = null;
+          try { m = JSON.parse(data.model); } catch (e) { m = null; }
+          const s = summarise(m || { name: data.name, bays: [] }, d.id, data.when);
+          s.model = m;
+          return s;
+        }).filter((s) => s.model).sort((a, b) => a.name.localeCompare(b.name));
+        if (modal.open && $("dlgTitle").textContent === "Library") onChange();
+      }, () => { /* subscription ended; the list simply stops updating */ });
+    } catch (e) { /* db unusable — local fallback already in place */ }
+  }
+
+  /* ============================================================
+     12. Wiring
+     ============================================================ */
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
+  }
+
+  $("devName").oninput = (e) => { model.name = e.target.value; saveWork(); };
+  $("btnTemplates").onclick = openTemplates;
+  $("btnLibrary").onclick = openLibrary;
+  $("btnExport").onclick = openExport;
+  $("zoomIn").onclick = () => { autoFit = false; zoom = Math.min(2.5, zoom * 1.2); render(); };
+  $("zoomOut").onclick = () => { autoFit = false; zoom = Math.max(0.2, zoom / 1.2); render(); };
+  $("zoomFit").onclick = () => { autoFit = true; render(); };
+
+  window.addEventListener("keydown", (e) => {
+    if (modal.open) return;
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return;
+    if (!sel) return;
+    if (e.key === "ArrowLeft" && sel.port != null) { e.preventDefault(); movePort(-1); }
+    if (e.key === "ArrowRight" && sel.port != null) { e.preventDefault(); movePort(1); }
+    if (e.key === "Escape") { sel = null; render(); }
+    if ((e.key === "Delete" || e.key === "Backspace") && sel.port != null) {
+      e.preventDefault();
+      model.bays[sel.bay].ports.splice(sel.port, 1);
+      sel = { bay: sel.bay };
+      render();
+    }
+  });
+
+  let rAF = null;
+  window.addEventListener("resize", () => {
+    if (!autoFit) return;
+    cancelAnimationFrame(rAF);
+    rAF = requestAnimationFrame(render);
+  });
+
+  // Boot with the last session's work, or the codec template so the
+  // page opens on a real, finished device rather than an empty shell.
+  model = loadWork() || tplCodecEQ();
+  render();
+
+  // Capabilities light up when the viewer answers; the page works without them.
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("downloads").then((d) => { downloads = d; }).catch(() => {});
+    window.claude.use("db").then((d) => { db = d; }).catch(() => {});
+  }
+})();
+</script>
