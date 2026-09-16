@@ -318,6 +318,11 @@
           <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
           <button id="zoomFit" type="button">Fit</button>
         </div>
+        <div class="zoomgroup" role="group" aria-label="Port spacing" title="Space between ports">
+          <button id="gapOut" type="button" aria-label="Narrower port spacing">&minus;</button>
+          <span class="zoomval mono" id="gapVal">9px</span>
+          <button id="gapIn" type="button" aria-label="Wider port spacing">+</button>
+        </div>
         <span id="dims" class="mono"></span>
         <span class="hint"><span class="kbd">Click</span> a port to edit it</span>
       </div>
@@ -982,6 +987,8 @@
   const LS_WORK = "pms.work.v1";
   const LS_LIB = "pms.lib.v1";
   const LS_THEME = "pms.theme.v1";
+  const LS_GAP = "pms.portGap.v1";
+  const GAP_MIN = 2, GAP_MAX = 28, GAP_STEP = 2, GAP_DEFAULT = GEO.portGap;
 
   let model = null;
   let sel = null;          // {bay, port?} | null
@@ -1003,6 +1010,18 @@
   }
   function saveWork() {
     try { localStorage.setItem(LS_WORK, JSON.stringify(model)); } catch (e) { /* ignore */ }
+  }
+  function loadPortGap() {
+    try {
+      const raw = +localStorage.getItem(LS_GAP);
+      if (Number.isFinite(raw) && raw >= GAP_MIN && raw <= GAP_MAX) return raw;
+    } catch (e) { /* storage unavailable — use the default */ }
+    return GAP_DEFAULT;
+  }
+  function setPortGap(px) {
+    GEO.portGap = Math.min(GAP_MAX, Math.max(GAP_MIN, px));
+    $("gapVal").textContent = GEO.portGap + "px";
+    try { localStorage.setItem(LS_GAP, String(GEO.portGap)); } catch (e) { /* ignore */ }
   }
 
   /* ============================================================
@@ -1655,6 +1674,8 @@
   $("zoomIn").onclick = () => { autoFit = false; zoom = Math.min(2.5, zoom * 1.2); render(); };
   $("zoomOut").onclick = () => { autoFit = false; zoom = Math.max(0.2, zoom / 1.2); render(); };
   $("zoomFit").onclick = () => { autoFit = true; render(); };
+  $("gapIn").onclick = () => { setPortGap(GEO.portGap + GAP_STEP); render(); };
+  $("gapOut").onclick = () => { setPortGap(GEO.portGap - GAP_STEP); render(); };
 
   window.addEventListener("keydown", (e) => {
     if (modal.open) return;
@@ -1678,6 +1699,8 @@
     cancelAnimationFrame(rAF);
     rAF = requestAnimationFrame(render);
   });
+
+  setPortGap(loadPortGap());
 
   // Boot with the last session's work, or the codec template so the
   // page opens on a real, finished device rather than an empty shell.
