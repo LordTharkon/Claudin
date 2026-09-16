@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Build rear-panel port diagrams for switches, servers and AV codecs.">
 <title>Port Map Studio</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -257,6 +263,8 @@
     .topbar { padding:10px 12px; }
   }
 </style>
+</head>
+<body>
 
 <div class="app">
   <header class="topbar">
@@ -270,9 +278,11 @@
     <input id="devName" class="devname" type="text" aria-label="Device name" placeholder="Untitled device">
     <div class="tools">
       <button class="btn" id="btnTemplates" type="button">Start from template</button>
-      <button class="btn" id="btnLibrary" type="button">Library</button>
-      <button class="btn primary" id="btnExport" type="button">Export SVG</button>
+      <button class="btn" id="btnLibrary" type="button">Saved designs</button>
+      <button class="btn" id="btnImport" type="button">Import</button>
+      <button class="btn primary" id="btnExport" type="button">Export</button>
     </div>
+    <input type="file" id="fileIn" accept=".json,.svg,application/json,image/svg+xml" hidden>
   </header>
 
   <main class="workbench">
@@ -317,7 +327,11 @@
   /* ============================================================
      1. Drawing constants — the vertical rhythm every device shares
      ============================================================ */
-  const SVG_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  // Single quotes inside the stack, deliberately: this string is emitted
+  // into a double-quoted SVG attribute, and nested double quotes would
+  // make the file invalid XML — fine in a browser, rejected by Illustrator,
+  // Inkscape and anything else that parses it properly.
+  const SVG_FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
   const GEO = {
     viewTop: 0, viewH: 280,
@@ -677,6 +691,112 @@
     };
   }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  /* ------------------------------------------------------------
+     Files in and out.
+
+     One saver covers both homes this page has: inside the Claude
+     viewer the sandbox blocks page-initiated downloads and the host
+     saves on our behalf; served as an ordinary web page there is no
+     host, and a Blob link is exactly right.
+
+     Exported SVGs carry their own design data in <metadata>, so the
+     picture you paste into a doc is also the file you re-import a
+     year later to change a label.
+     ------------------------------------------------------------ */
+  const DESIGN_FORMAT = "port-map-studio/1";
+
+  async function saveFile(filename, text, mime) {
+    if (downloads) {
+      try { await downloads.save({ filename, data: text }); return "saved"; }
+      catch (err) { return err && err.code === "declined" ? "declined" : "failed"; }
+    }
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: mime }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      return "saved";
+    } catch (e) { return "failed"; }
+  }
+
+  function exportSVG(m) {
+    const built = buildSVG(m, {});
+    const meta = '<metadata id="pms-source" data-format="' + DESIGN_FORMAT + '">'
+      + esc(JSON.stringify(m)) + '</metadata>';
+    return built.svg.replace(/^(<svg[^>]*>)/, (tag) => tag + "\n  " + meta);
+  }
+
+  function modelFromSVG(text) {
+    try {
+      const doc = new DOMParser().parseFromString(text, "image/svg+xml");
+      if (doc.querySelector("parsererror")) return null;
+      const node = doc.querySelector('metadata[data-format="' + DESIGN_FORMAT + '"]');
+      return node ? JSON.parse(node.textContent) : null;
+    } catch (e) { return null; }
+  }
+
+  /* Accepts a design file or an exported SVG; returns null for
+     anything else. Everything that comes back is rebuilt field by
+     field, so a truncated or hand-edited file cannot break drawing. */
+  function parseDesign(text) {
+    const trimmed = String(text || "").trim();
+    let raw = null;
+    if (trimmed.startsWith("<")) raw = modelFromSVG(trimmed);
+    else { try { raw = JSON.parse(trimmed); } catch (e) { raw = null; } }
+    if (!raw || typeof raw !== "object" || !Array.isArray(raw.bays)) return null;
+    return normaliseModel(raw);
+  }
+
+  const str = (v, d) => (typeof v === "string" ? v : d);
+
+  function normaliseModel(raw) {
+    const m = {
+      name: str(raw.name, "Untitled device"),
+      brand: str(raw.brand, ""),
+      model: str(raw.model, ""),
+      topItems: [],
+      bays: []
+    };
+    (Array.isArray(raw.topItems) ? raw.topItems : []).forEach((t) => {
+      if (!t || typeof t !== "object") return;
+      m.topItems.push({
+        type: TYPES[t.type] ? t.type : "antenna",
+        status: STATUS[t.status] ? t.status : "open",
+        label: str(t.label, "")
+      });
+    });
+    (Array.isArray(raw.bays) ? raw.bays : []).forEach((b) => {
+      if (!b || typeof b !== "object") return;
+      const bay = { id: nid(), title: str(b.title, "PORTS"), footer: str(b.footer, ""), ports: [] };
+      (Array.isArray(b.ports) ? b.ports : []).forEach((p) => {
+        if (!p || typeof p !== "object") return;
+        bay.ports.push(newPort(TYPES[p.type] ? p.type : "blank", {
+          status: STATUS[p.status] ? p.status : "open",
+          pid: str(p.pid, ""), label: str(p.label, ""), detail: str(p.detail, ""), poe: !!p.poe
+        }));
+      });
+      m.bays.push(bay);
+    });
+    if (!m.bays.length) m.bays.push(newBay("PORTS"));
+    return m;
+  }
+
+  function importFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const m = parseDesign(reader.result);
+      if (!m) return toast("That file isn't a Port Map Studio design");
+      adoptModel(m, "Imported " + m.name);
+    };
+    reader.onerror = () => toast("Couldn't read that file");
+    reader.readAsText(file);
+  }
 
   /* ============================================================
      7. Templates
@@ -1127,11 +1247,18 @@
     $("dlgBody").querySelectorAll("[data-tpl]").forEach((b) => {
       b.onclick = () => {
         const t = TEMPLATES.find((x) => x.key === b.getAttribute("data-tpl"));
-        model = t.make(); sel = null; autoFit = true;
-        modal.close(); render();
-        toast("Opened " + t.name);
+        adoptModel(t.make(), "Opened " + t.name);
       };
     });
+  }
+
+  function adoptModel(m, msg) {
+    model = m;
+    sel = null;
+    autoFit = true;
+    if (modal.open) modal.close();
+    render();
+    if (msg) toast(msg);
   }
 
   function thumb(m) {
@@ -1140,23 +1267,23 @@
   }
 
   function openExport() {
-    const svg = buildSVG(model, {}).svg;
+    const svg = exportSVG(model);
     const json = JSON.stringify(model, null, 2);
     const fname = slug(model.name, "device");
     openDialog("Export",
       `<div class="tabs">
-         <button class="tab" type="button" data-tab="svg" aria-pressed="true">SVG</button>
-         <button class="tab" type="button" data-tab="json" aria-pressed="false">JSON (design file)</button>
+         <button class="tab" type="button" data-tab="svg" aria-pressed="true">SVG (the diagram)</button>
+         <button class="tab" type="button" data-tab="json" aria-pressed="false">Design file (JSON)</button>
        </div>
        <div id="tabSvg">
-         <div class="banner"><span>Ports carry <span class="mono">id</span>, <span class="mono">data-port</span>, <span class="mono">data-type</span> and <span class="mono">data-status</span>, and connected ports keep the <span class="mono">.glow-connected</span> class — so the file drops straight into an app that wires up clicks or live status.</span></div>
+         <div class="banner"><span>This SVG carries its own design data, so <b>Import</b> can reopen this very file for editing later — one file to keep, not two. Ports also carry <span class="mono">id</span>, <span class="mono">data-port</span>, <span class="mono">data-type</span> and <span class="mono">data-status</span>, and connected ports keep the <span class="mono">.glow-connected</span> class, so it drops straight into an app that wires up clicks or live status.</span></div>
          <textarea class="code mono" id="svgOut" spellcheck="false" readonly></textarea>
        </div>
        <div id="tabJson" hidden>
-         <p class="panel-note">Paste a design file here and load it, or copy this one to share it with the team.</p>
+         <p class="panel-note">The raw design, for editing later or handing to a colleague. Download it, then reopen it with <b>Import</b> — or paste one in here and load it straight away.</p>
          <textarea class="code mono" id="jsonOut" spellcheck="false"></textarea>
        </div>`,
-      `<button class="btn" id="expLoad" type="button" hidden>Load pasted JSON</button>
+      `<button class="btn" id="expLoad" type="button" hidden>Load pasted design</button>
        <button class="btn" id="expCopy" type="button">Copy</button>
        <button class="btn primary" id="expSave" type="button">Download .svg</button>`);
 
@@ -1186,25 +1313,18 @@
     };
     $("expSave").onclick = async () => {
       const isSvg = tab === "svg";
-      const data = isSvg ? $("svgOut").value : $("jsonOut").value;
-      if (!downloads) return toast("Downloads aren't available here — use Copy instead");
-      try {
-        await downloads.save({ filename: fname + (isSvg ? ".svg" : ".json"), data });
-        toast("Saved " + fname + (isSvg ? ".svg" : ".json"));
-      } catch (err) {
-        if (err && err.code === "declined") return;
-        toast("Couldn't save the file — use Copy instead");
-      }
+      const name = fname + (isSvg ? ".svg" : ".json");
+      const res = await saveFile(
+        name,
+        isSvg ? $("svgOut").value : $("jsonOut").value,
+        isSvg ? "image/svg+xml" : "application/json");
+      if (res === "saved") toast("Saved " + name);
+      else if (res === "failed") toast("Couldn't save the file — use Copy instead");
     };
     $("expLoad").onclick = () => {
-      try {
-        const m = JSON.parse($("jsonOut").value);
-        if (!m || !Array.isArray(m.bays)) throw new Error("bad");
-        model = m; sel = null; autoFit = true; modal.close(); render();
-        toast("Design loaded");
-      } catch (e) {
-        toast("That isn't a valid design file");
-      }
+      const m = parseDesign($("jsonOut").value);
+      if (!m) return toast("That isn't a valid design file");
+      adoptModel(m, "Design loaded");
     };
   }
 
@@ -1213,16 +1333,26 @@
      ============================================================ */
   let libUnsub = null, libDocs = [];
 
+  /* Two places a design can live. "This browser" is always there —
+     localStorage on this machine, private to whoever is sitting at
+     it. "Team library" appears only inside the Claude viewer, which
+     supplies the shared store. */
+  let libScope = "local";
+
   function openLibrary() {
-    const shared = !!db;
+    const teamOn = !!db;
+    if (libScope === "team" && !teamOn) libScope = "local";
     const draw = () => {
-      const items = shared ? libDocs : localLib();
-      openDialog("Library",
-        `<div class="banner">
-           <span>${shared
-             ? "Saved designs are shared with everyone in your organisation who can open this page."
-             : "Shared saving isn't available in this view, so designs are kept in this browser only. Use Export &rarr; JSON to pass one to a colleague."}</span>
+      const items = listLibrary(libScope);
+      const note = libScope === "team"
+        ? "Shared with everyone in your organisation who can open this page."
+        : "Saved in this browser, on this computer only — private to you, and cleared if you wipe your browsing data. Use <b>Export</b> for anything worth keeping or passing on.";
+      openDialog("Saved designs",
+        `<div class="tabs">
+           <button class="tab" type="button" data-scope="local" aria-pressed="${libScope === "local"}">This browser</button>
+           ${teamOn ? `<button class="tab" type="button" data-scope="team" aria-pressed="${libScope === "team"}">Team library</button>` : ""}
          </div>
+         <div class="banner"><span>${note}</span></div>
          <div class="field"><span>Save the current device as</span>
            <div class="liner"><input type="text" id="libName" value="${esc(model.name)}">
            <button class="btn primary sm" id="libSave" type="button">Save</button></div></div>
@@ -1232,15 +1362,22 @@
                <div class="grow"><b>${esc(it.name)}</b><small>${esc(it.bays)} bays &middot; ${esc(it.ports)} ports &middot; ${esc(it.when)}</small></div>
                <button class="btn sm" data-open="${esc(it.key)}" type="button">Open</button>
                <button class="btn ghost sm danger" data-del="${esc(it.key)}" type="button">Delete</button>
-             </div>`).join("") : `<p class="empty-note">Nothing saved yet.</p>`}
+             </div>`).join("") : `<p class="empty-note">Nothing saved here yet.</p>`}
          </div>`);
 
-      $("libSave").onclick = () => saveToLibrary($("libName").value.trim() || "Untitled device").then(draw);
-      $("dlgBody").querySelectorAll("[data-open]").forEach((b) => b.onclick = () => openFromLibrary(b.getAttribute("data-open")));
-      $("dlgBody").querySelectorAll("[data-del]").forEach((b) => b.onclick = () => delFromLibrary(b.getAttribute("data-del")).then(draw));
+      $("dlgBody").querySelectorAll("[data-scope]").forEach((b) => b.onclick = () => {
+        libScope = b.getAttribute("data-scope");
+        draw();
+      });
+      $("libSave").onclick = () =>
+        saveToLibrary($("libName").value.trim() || "Untitled device", libScope).then(draw);
+      $("dlgBody").querySelectorAll("[data-open]").forEach((b) =>
+        b.onclick = () => openFromLibrary(b.getAttribute("data-open"), libScope));
+      $("dlgBody").querySelectorAll("[data-del]").forEach((b) =>
+        b.onclick = () => delFromLibrary(b.getAttribute("data-del"), libScope).then(draw));
     };
     draw();
-    if (shared && !libUnsub) subscribeLib(draw);
+    if (teamOn && !libUnsub) subscribeLib(() => { if (libScope === "team") draw(); });
   }
 
   function summarise(m, key, when) {
@@ -1252,56 +1389,58 @@
     };
   }
 
-  function localLib() {
+  function readLocalLib() {
     try {
       const raw = JSON.parse(localStorage.getItem(LS_LIB) || "[]");
-      return raw.map((r) => summarise(r.model, r.key, r.when));
+      return Array.isArray(raw) ? raw : [];
     } catch (e) { return []; }
   }
+  function writeLocalLib(rows) {
+    try { localStorage.setItem(LS_LIB, JSON.stringify(rows.slice(0, 60))); return true; }
+    catch (e) { return false; }
+  }
 
-  async function saveToLibrary(name) {
-    const m = clone(model); m.name = name;
+  function listLibrary(scope) {
+    if (scope === "team") return libDocs;
+    return readLocalLib().map((r) => summarise(r.model, r.key, r.when));
+  }
+
+  async function saveToLibrary(name, scope) {
+    const m = clone(model);
+    m.name = name;
     const key = slug(name, "device") + "-" + Date.now().toString(36).slice(-4);
-    if (db) {
+    if (scope === "team" && db) {
       try {
         await db.collection("devices").doc(key).set({ name, when: Date.now(), model: JSON.stringify(m) });
         toast("Saved to the team library");
-        return;
       } catch (e) {
         toast(e && e.code === "quota_exceeded" ? "The library is full — delete a design first" : "Couldn't save to the shared library");
-        return;
       }
+      return;
     }
-    try {
-      const raw = JSON.parse(localStorage.getItem(LS_LIB) || "[]");
-      raw.unshift({ key, when: Date.now(), model: m });
-      localStorage.setItem(LS_LIB, JSON.stringify(raw.slice(0, 40)));
-      toast("Saved in this browser");
-    } catch (e) { toast("This browser is blocking storage"); }
+    const rows = readLocalLib();
+    rows.unshift({ key, when: Date.now(), model: m });
+    toast(writeLocalLib(rows) ? "Saved in this browser" : "This browser is blocking storage");
   }
 
-  async function openFromLibrary(key) {
-    if (db) {
+  async function openFromLibrary(key, scope) {
+    if (scope === "team") {
       const hit = libDocs.find((d) => d.key === key);
-      if (hit && hit.model) { model = hit.model; sel = null; autoFit = true; modal.close(); render(); toast("Opened " + model.name); }
+      if (hit && hit.model) adoptModel(clone(hit.model), "Opened " + hit.model.name);
       return;
     }
-    try {
-      const raw = JSON.parse(localStorage.getItem(LS_LIB) || "[]");
-      const rec = raw.find((r) => r.key === key);
-      if (rec) { model = rec.model; sel = null; autoFit = true; modal.close(); render(); toast("Opened " + model.name); }
-    } catch (e) { toast("Couldn't open that design"); }
+    const rec = readLocalLib().find((r) => r.key === key);
+    if (rec) adoptModel(normaliseModel(rec.model), "Opened " + rec.model.name);
+    else toast("Couldn't open that design");
   }
 
-  async function delFromLibrary(key) {
-    if (db) {
-      try { await db.collection("devices").doc(key).delete(); } catch (e) { toast("Couldn't delete that design"); }
+  async function delFromLibrary(key, scope) {
+    if (scope === "team") {
+      try { await db.collection("devices").doc(key).delete(); }
+      catch (e) { toast("Couldn't delete that design"); }
       return;
     }
-    try {
-      const raw = JSON.parse(localStorage.getItem(LS_LIB) || "[]");
-      localStorage.setItem(LS_LIB, JSON.stringify(raw.filter((r) => r.key !== key)));
-    } catch (e) { /* ignore */ }
+    writeLocalLib(readLocalLib().filter((r) => r.key !== key));
   }
 
   function subscribeLib(onChange) {
@@ -1315,7 +1454,7 @@
           s.model = m;
           return s;
         }).filter((s) => s.model).sort((a, b) => a.name.localeCompare(b.name));
-        if (modal.open && $("dlgTitle").textContent === "Library") onChange();
+        if (modal.open && $("dlgTitle").textContent === "Saved designs") onChange();
       }, () => { /* subscription ended; the list simply stops updating */ });
     } catch (e) { /* db unusable — local fallback already in place */ }
   }
@@ -1336,6 +1475,25 @@
   $("btnTemplates").onclick = openTemplates;
   $("btnLibrary").onclick = openLibrary;
   $("btnExport").onclick = openExport;
+  $("btnImport").onclick = () => $("fileIn").click();
+  $("fileIn").onchange = (e) => {
+    importFile(e.target.files && e.target.files[0]);
+    e.target.value = "";           // so the same file can be picked twice
+  };
+
+  // Dropping a design or an exported SVG anywhere on the page opens it.
+  ["dragenter", "dragover"].forEach((ev) => document.addEventListener(ev, (e) => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).indexOf("Files") > -1) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }));
+  document.addEventListener("drop", (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    e.preventDefault();
+    importFile(f);
+  });
   $("zoomIn").onclick = () => { autoFit = false; zoom = Math.min(2.5, zoom * 1.2); render(); };
   $("zoomOut").onclick = () => { autoFit = false; zoom = Math.max(0.2, zoom / 1.2); render(); };
   $("zoomFit").onclick = () => { autoFit = true; render(); };
@@ -1371,7 +1529,10 @@
   // Capabilities light up when the viewer answers; the page works without them.
   if (window.claude && typeof window.claude.use === "function") {
     window.claude.use("downloads").then((d) => { downloads = d; }).catch(() => {});
-    window.claude.use("db").then((d) => { db = d; }).catch(() => {});
+    window.claude.use("db").then((d) => { db = d; if (d) libScope = "team"; }).catch(() => {});
   }
 })();
 </script>
+
+</body>
+</html>
