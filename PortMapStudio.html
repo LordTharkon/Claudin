@@ -535,9 +535,12 @@
         const labelW = textW(p.label, 8, p.status === "connected" || p.status === "unknown" || p.status === "fault" ? "bold" : "400");
         const detailW = textW(p.detail, 7, "400");
         const pillW = p.label ? Math.max(labelW + 16, 30) : 0;
-        const slot = Math.max(t.w, pillW, detailW + 4, idW + 4);
-        return { port: p, type: t, slot, pillW };
+        return { port: p, type: t, pillW, need: Math.max(t.w, pillW, detailW + 4, idW + 4) };
       });
+      // every port in a bay shares one slot width, so connectors line up on a
+      // regular grid instead of drifting closer/further apart with label length
+      const slot = ports.reduce((a, p) => Math.max(a, p.need), 0);
+      ports.forEach((p) => { p.slot = slot; });
       const content = ports.reduce((a, p) => a + p.slot, 0) + Math.max(0, ports.length - 1) * GEO.portGap;
       const headW = textW(bay.title, 10, "600");
       const footW = textW(bay.footer, 8, "400");
