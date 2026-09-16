@@ -240,6 +240,17 @@
   .libitem b { display:block; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .libitem small { color:var(--muted); font-size:11.5px; }
 
+  .pngprev {
+    border:1px solid var(--line); border-radius:var(--r); padding:10px; overflow:hidden;
+    background-color:var(--surface-2);
+    background-image:
+      linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%),
+      linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%);
+    background-size:16px 16px; background-position:0 0, 8px 8px;
+  }
+  .pngprev img { display:block; width:100%; height:auto; }
+  .pngprev.busy { opacity:.5; }
+
   .banner { display:flex; gap:9px; align-items:flex-start; padding:10px 12px; border-radius:var(--r); background:var(--surface-2); border:1px solid var(--line); font-size:12.5px; color:var(--muted); margin-bottom:12px; }
 
   .toast {
@@ -712,7 +723,8 @@
       catch (err) { return err && err.code === "declined" ? "declined" : "failed"; }
     }
     try {
-      const url = URL.createObjectURL(new Blob([text], { type: mime }));
+      const blob = text instanceof Blob ? text : new Blob([text], { type: mime });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
@@ -729,6 +741,35 @@
     const meta = '<metadata id="pms-source" data-format="' + DESIGN_FORMAT + '">'
       + esc(JSON.stringify(m)) + '</metadata>';
     return built.svg.replace(/^(<svg[^>]*>)/, (tag) => tag + "\n  " + meta);
+  }
+
+  /* Flatten the diagram to a PNG.
+
+     The SVG is handed to an <img> as a data URL — self-contained, so
+     nothing external is fetched and the canvas stays untainted, which
+     is what lets us read the pixels back out. Scaling happens at draw
+     time rather than by resizing a 1x bitmap, so the result is
+     genuinely resampled from vectors and stays crisp at any size. */
+  function rasterise(svgText, scale, background) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.naturalWidth * scale);
+          c.height = Math.round(img.naturalHeight * scale);
+          const ctx = c.getContext("2d");
+          if (background && background !== "transparent") {
+            ctx.fillStyle = background;
+            ctx.fillRect(0, 0, c.width, c.height);
+          }
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          c.toBlob((blob) => blob ? resolve(blob) : reject(new Error("encode")), "image/png");
+        } catch (e) { reject(e); }
+      };
+      img.onerror = () => reject(new Error("render"));
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgText);
+    });
   }
 
   function modelFromSVG(text) {
@@ -1273,11 +1314,29 @@
     openDialog("Export",
       `<div class="tabs">
          <button class="tab" type="button" data-tab="svg" aria-pressed="true">SVG (the diagram)</button>
+         <button class="tab" type="button" data-tab="png" aria-pressed="false">PNG (image)</button>
          <button class="tab" type="button" data-tab="json" aria-pressed="false">Design file (JSON)</button>
        </div>
        <div id="tabSvg">
          <div class="banner"><span>This SVG carries its own design data, so <b>Import</b> can reopen this very file for editing later — one file to keep, not two. Ports also carry <span class="mono">id</span>, <span class="mono">data-port</span>, <span class="mono">data-type</span> and <span class="mono">data-status</span>, and connected ports keep the <span class="mono">.glow-connected</span> class, so it drops straight into an app that wires up clicks or live status.</span></div>
          <textarea class="code mono" id="svgOut" spellcheck="false" readonly></textarea>
+       </div>
+       <div id="tabPng" hidden>
+         <p class="panel-note">A flat image for slide decks, tickets and chat — anywhere an SVG won't go. It can't be edited afterwards, so keep the SVG if you'll want to change a label later.</p>
+         <div class="field"><span>Size</span>
+           <div class="segs" id="pngScale" style="grid-template-columns:repeat(4,1fr)"></div>
+           <span class="helper">The diagram is drawn from vectors at the size you pick, so it stays sharp when someone zooms in or prints it.</span>
+         </div>
+         <div class="field"><span>Background</span>
+           <div class="segs" id="pngBg" style="grid-template-columns:repeat(3,1fr)">
+             <button class="seg" type="button" data-bg="transparent" aria-pressed="true">Transparent</button>
+             <button class="seg" type="button" data-bg="#ffffff" aria-pressed="false">White</button>
+             <button class="seg" type="button" data-bg="#0a0f16" aria-pressed="false">Dark</button>
+           </div>
+         </div>
+         <div class="field"><span>Preview</span>
+           <div class="pngprev" id="pngPrev"></div>
+         </div>
        </div>
        <div id="tabJson" hidden>
          <p class="panel-note">The raw design, for editing later or handing to a colleague. Download it, then reopen it with <b>Import</b> — or paste one in here and load it straight away.</p>
@@ -1289,18 +1348,76 @@
 
     $("svgOut").value = svg;
     $("jsonOut").value = json;
+
+    // Natural size comes from the diagram itself, so the multipliers
+    // always advertise the pixels they will actually produce.
+    const baseW = buildSVG(model, {}).layout.viewW;
+    let pngScale = 3, pngBg = "transparent";
+
+    $("pngScale").innerHTML = [1, 2, 3, 4].map((n) => `
+      <button class="seg" type="button" data-sc="${n}" aria-pressed="${n === pngScale}">
+        <b>${n}&times;</b><span class="mono" style="font-size:10px">${Math.round(baseW * n)} &times; ${Math.round(GEO.viewH * n)}</span>
+      </button>`).join("");
+
+    let prevToken = 0;
+    const drawPreview = async () => {
+      const mine = ++prevToken;
+      const box = $("pngPrev");
+      if (!box) return;
+      box.classList.add("busy");
+      try {
+        const blob = await rasterise(svg, 1, pngBg);
+        if (mine !== prevToken) return;             // a newer choice won
+        const url = URL.createObjectURL(blob);
+        box.innerHTML = '<img alt="PNG preview">';
+        const img = box.querySelector("img");
+        img.onload = () => URL.revokeObjectURL(url);
+        img.src = url;
+      } catch (e) {
+        if (mine === prevToken) box.innerHTML = '<p class="empty-note">Preview unavailable — the download should still work.</p>';
+      } finally {
+        if (mine === prevToken) box.classList.remove("busy");
+      }
+    };
+
+    $("pngScale").querySelectorAll("[data-sc]").forEach((b) => b.onclick = () => {
+      pngScale = +b.getAttribute("data-sc");
+      $("pngScale").querySelectorAll("[data-sc]").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+    });
+    $("pngBg").querySelectorAll("[data-bg]").forEach((b) => b.onclick = () => {
+      pngBg = b.getAttribute("data-bg");
+      $("pngBg").querySelectorAll("[data-bg]").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+      drawPreview();
+    });
+
     let tab = "svg";
     const setTab = (t) => {
       tab = t;
       $("tabSvg").hidden = t !== "svg";
+      $("tabPng").hidden = t !== "png";
       $("tabJson").hidden = t !== "json";
       $("expLoad").hidden = t !== "json";
-      $("expSave").textContent = t === "svg" ? "Download .svg" : "Download .json";
+      $("expCopy").textContent = t === "png" ? "Copy image" : "Copy";
+      $("expSave").textContent = "Download ." + (t === "svg" ? "svg" : t === "png" ? "png" : "json");
       $("dlgBody").querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.getAttribute("data-tab") === t)));
+      if (t === "png" && !$("pngPrev").querySelector("img")) drawPreview();
     };
     $("dlgBody").querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => setTab(b.getAttribute("data-tab")));
 
     $("expCopy").onclick = async () => {
+      if (tab === "png") {
+        // Safari only accepts a promise here, and Chrome is happy with
+        // one too, so the blob is built inside the ClipboardItem.
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": rasterise(svg, pngScale, pngBg) })
+          ]);
+          toast("Image copied — paste it straight into a doc");
+        } catch (e) {
+          toast("This browser won't copy images — use Download instead");
+        }
+        return;
+      }
       const text = tab === "svg" ? $("svgOut").value : $("jsonOut").value;
       try {
         await navigator.clipboard.writeText(text);
@@ -1312,12 +1429,19 @@
       }
     };
     $("expSave").onclick = async () => {
-      const isSvg = tab === "svg";
-      const name = fname + (isSvg ? ".svg" : ".json");
-      const res = await saveFile(
-        name,
-        isSvg ? $("svgOut").value : $("jsonOut").value,
-        isSvg ? "image/svg+xml" : "application/json");
+      const name = fname + "." + (tab === "svg" ? "svg" : tab === "png" ? "png" : "json");
+      let data, mime;
+      if (tab === "png") {
+        $("expSave").disabled = true;
+        try { data = await rasterise(svg, pngScale, pngBg); }
+        catch (e) { $("expSave").disabled = false; return toast("Couldn't build the image"); }
+        $("expSave").disabled = false;
+        mime = "image/png";
+      } else {
+        data = tab === "svg" ? $("svgOut").value : $("jsonOut").value;
+        mime = tab === "svg" ? "image/svg+xml" : "application/json";
+      }
+      const res = await saveFile(name, data, mime);
       if (res === "saved") toast("Saved " + name);
       else if (res === "failed") toast("Couldn't save the file — use Copy instead");
     };
