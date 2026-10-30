@@ -62,10 +62,11 @@ def rot(axis, deg):
 
 class Geo:
     """Triangle soup with per-vertex normals and a single material name."""
-    __slots__ = ('mat', 'pos', 'nrm', 'idx')
+    __slots__ = ('mat', 'pos', 'nrm', 'idx', 'uv')
 
     def __init__(self, mat, pos, nrm, idx, fix=True):
         self.mat, self.pos, self.nrm, self.idx = mat, pos, nrm, idx
+        self.uv = None
         if fix:
             self._orient()
 
@@ -282,27 +283,24 @@ def polyline_tube(mat, pts, r, segs=12):
     return out
 
 
-def hydraulic_cylinder(p0, p1, r_barrel, r_rod, extension=0.55,
-                       barrel='paint', rod='chrome', pin='steel_dark'):
-    """Barrel at p0, chromed rod at p1, with clevis eyes at both ends."""
+def hydraulic_parts(p0, p1, r_barrel, r_rod, extension=0.55,
+                    barrel='paint_yellow', rod='chrome', pin='steel_dark'):
+    """(barrel geos, rod geos) for a cylinder with its barrel pin at p0 and rod eye at p1."""
     d = sub(p1, p0)
-    L = length(d)
     u = norm(d)
     e0 = add(p0, mul(u, r_barrel * 1.2))
     split = add(p0, mul(d, extension))
     e1 = sub(p1, mul(u, r_rod * 2.0))
-    parts = [
-        cyl_between(barrel, e0, split, r_barrel, 24),
-        cyl_between(barrel, sub(split, mul(u, 0.04)), add(split, mul(u, 0.02)), r_barrel * 1.12, 24),
-        cyl_between(barrel, sub(e0, mul(u, 0.03)), add(e0, mul(u, 0.05)), r_barrel * 1.1, 24),
-        cyl_between(rod, split, e1, r_rod, 20),
-        cyl_between(barrel, e1, p1, r_rod * 1.3, 16),
-    ]
-    # eyes (pins perpendicular to the cylinder, horizontal where possible)
     side = norm(cross(u, (0, 1, 0))) if abs(u[1]) < 0.99 else (0, 0, 1)
-    for p, rr in ((p0, r_barrel * 0.9), (p1, r_rod * 1.5)):
-        parts.append(cyl_between(pin, sub(p, mul(side, rr * 0.9)), add(p, mul(side, rr * 0.9)), rr, 16))
-    return parts
+    pin_geo = lambda p, rr: cyl_between(pin, sub(p, mul(side, rr * 0.9)), add(p, mul(side, rr * 0.9)), rr, 16)
+    b = [cyl_between(barrel, e0, split, r_barrel, 24),
+         cyl_between(barrel, sub(split, mul(u, 0.04)), add(split, mul(u, 0.02)), r_barrel * 1.12, 24),
+         cyl_between(barrel, sub(e0, mul(u, 0.03)), add(e0, mul(u, 0.05)), r_barrel * 1.1, 24),
+         pin_geo(p0, r_barrel * 0.9)]
+    r = [cyl_between(rod, sub(split, mul(u, 0.01)), e1, r_rod, 20),
+         cyl_between(barrel, e1, p1, r_rod * 1.3, 16),
+         pin_geo(p1, r_rod * 1.5)]
+    return b, r
 
 
 def convex_hull(points):
@@ -357,34 +355,125 @@ def resample_loop(loop, count):
 # ------------------------------------------------------------------ model ---
 
 class Model:
+    """A rigged vehicle: named nodes with real pivots, each holding Geo chunks.
+
+    Geometry is authored in world coordinates in a convenient design pose. Nodes may
+    carry a rest-pose rotation about their pivot (see `pose`) which is baked in by
+    `finalize`; hydraulic cylinders are generated after posing so they stay attached
+    to both of their mounts. On export every node's origin is its pivot.
+    """
+
     def __init__(self, name, materials):
         self.name = name
-        self.materials = materials  # name -> dict(color, metallic, roughness, ...)
-        self.parts = {}
+        self.materials = materials
+        self.nodes = {}     # name -> dict(parent, pivot, rot)
+        self.order = []
+        self.parts = {}     # name -> [Geo]
+        self.cyls = []
+        self.done = False
+
+    def node(self, name, parent=None, pivot=(0, 0, 0)):
+        assert name not in self.nodes, name
+        assert parent is None or parent in self.nodes, parent
+        self.nodes[name] = dict(parent=parent, pivot=tuple(pivot), rot=None)
+        self.order.append(name)
+        self.parts.setdefault(name, [])
+        return name
 
     def add(self, part, *geos):
-        bucket = self.parts.setdefault(part, [])
+        if part not in self.nodes:
+            self.node(part)
+        bucket = self.parts[part]
         for g in geos:
             if isinstance(g, (list, tuple)):
                 self.add(part, *g)
             else:
                 bucket.append(g)
 
-    def mirrored_copy(self, src, dst):
-        self.parts[dst] = [g.mirror_z() for g in self.parts[src]]
+    def pose(self, name, axis, deg):
+        """Rotate a node (and everything under it) about its pivot for the rest pose."""
+        self.nodes[name]['rot'] = (axis, deg)
 
-    def _merged(self):
-        """part -> material -> (pos, nrm, idx) with geos of a material merged."""
-        out = {}
-        for part, geos in self.parts.items():
-            mats = out.setdefault(part, {})
-            for g in geos:
-                pos, nrm, idx = mats.setdefault(g.mat, ([], [], []))
-                o = len(pos)
-                pos += g.pos
-                nrm += g.nrm
-                idx += [(a + o, b + o, c + o) for a, b, c in g.idx]
-        return out
+    def cylinder(self, name, parent, attach, p0, p1, r_barrel, r_rod, extension=0.55, barrel='paint_yellow'):
+        """Hydraulic cylinder: barrel pinned to `parent` at p0, rod eye pinned to `attach` at p1.
+        Exported as <name>_rotate (barrel, origin at p0) with child <name>_rod_slide (origin at p1)."""
+        self.cyls.append(dict(name=name, parent=parent, attach=attach, p0=tuple(p0), p1=tuple(p1),
+                              rb=r_barrel, rr=r_rod, ext=extension, mat=barrel))
+
+    def link(self, name, parent, attach, p0, p1, builder):
+        """Rigid link pinned to `parent` at p0 whose other pin follows `attach` at p1.
+        `builder(p0, p1)` returns its geometry once both pins are posed. Node origin is p0."""
+        self.cyls.append(dict(name=name, parent=parent, attach=attach, p0=tuple(p0), p1=tuple(p1), builder=builder))
+
+    def mirror(self, src='right', dst='left'):
+        """Duplicate every node / cylinder whose name contains `src`, mirrored across z = 0."""
+        sw = lambda n: n.replace(src, dst) if n and src in n else n
+        for name in list(self.order):
+            if src in name:
+                nd = self.nodes[name]
+                px, py, pz = nd['pivot']
+                self.node(sw(name), sw(nd['parent']), (px, py, -pz))
+                self.parts[sw(name)] = [g.mirror_z() for g in self.parts[name]]
+        for c in list(self.cyls):
+            if src in c['name']:
+                m = dict(c)
+                m['name'], m['parent'], m['attach'] = sw(c['name']), sw(c['parent']), sw(c['attach'])
+                m['p0'] = (c['p0'][0], c['p0'][1], -c['p0'][2])
+                m['p1'] = (c['p1'][0], c['p1'][1], -c['p1'][2])
+                self.cyls.append(m)
+
+    # ---- rest pose, cylinders, centring
+
+    def finalize(self):
+        if self.done:
+            return
+        xf = {}
+
+        def tf(name):
+            if name is None:
+                return (IDENTITY, (0.0, 0.0, 0.0))
+            if name in xf:
+                return xf[name]
+            nd = self.nodes[name]
+            M0, t0 = tf(nd['parent'])
+            if nd['rot']:
+                R = rot(*nd['rot'])
+                q = nd['pivot']
+                L = (R, sub(q, mat_vec(R, q)))
+                xf[name] = (mat_mul(M0, L[0]), add(mat_vec(M0, L[1]), t0))
+            else:
+                xf[name] = (M0, t0)
+            return xf[name]
+
+        app = lambda T, p: add(mat_vec(T[0], p), T[1])
+        pivots = {}
+        for name in self.order:
+            nd = self.nodes[name]
+            T = tf(name)
+            pivots[name] = app(tf(nd['parent']), nd['pivot'])
+            self.parts[name] = [g.transform(*T) if T[0] is not IDENTITY or any(T[1]) else g for g in self.parts[name]]
+        for c in self.cyls:
+            p0 = app(tf(c['parent']), c['p0'])
+            p1 = app(tf(c['attach']), c['p1'])
+            if 'builder' in c:
+                self.node(c['name'], c['parent'], p0)
+                pivots[c['name']] = p0
+                self.parts[c['name']] = list(c['builder'](p0, p1))
+                continue
+            barrel, rod = hydraulic_parts(p0, p1, c['rb'], c['rr'], c['ext'], barrel=c['mat'])
+            n0, n1 = c['name'] + '_rotate', c['name'] + '_rod_slide'
+            self.node(n0, c['parent'], p0)
+            self.node(n1, n0, p1)
+            pivots[n0], pivots[n1] = p0, p1
+            self.parts[n0], self.parts[n1] = barrel, rod
+        # origin on the ground, centred under the vehicle
+        lo, hi = self.bounds()
+        off = (-(lo[0] + hi[0]) / 2, -lo[1], -(lo[2] + hi[2]) / 2)
+        for name in self.order:
+            self.parts[name] = [g.move(*off) for g in self.parts[name]]
+            self.nodes[name]['pivot'] = add(pivots[name], off)
+            self.nodes[name]['rot'] = None
+        self.done = True
 
     def bounds(self):
         lo, hi = [1e9] * 3, [-1e9] * 3
@@ -401,66 +490,105 @@ class Model:
         verts = sum(len(g.pos) for gs in self.parts.values() for g in gs)
         return verts, tris
 
-    # ---- writers
+    # ---- writer
 
-    def write_glb(self, path):
-        merged = self._merged()
-        mat_names = sorted({m for mats in merged.values() for m in mats})
-        materials = []
-        for name in mat_names:
+    def write_glb(self, path, tex_size=1024):
+        import uvkit
+        self.finalize()
+        uv_parts, density = uvkit.unwrap(self.parts, tex_size)
+        self.texel_density = density
+        used = sorted({g.mat for gs in uv_parts.values() for g in gs})
+        blob = bytearray()
+        views, accessors, meshes, nodes = [], [], [], []
+        images, textures, materials = [], [], []
+
+        def push(data, target=None):
+            while len(blob) % 4:
+                blob.append(0)
+            v = {'buffer': 0, 'byteOffset': len(blob), 'byteLength': len(data)}
+            if target:
+                v['target'] = target
+            views.append(v)
+            blob.extend(data)
+            return len(views) - 1
+
+        for i, name in enumerate(used):
             spec = self.materials[name]
-            r, g, b = spec['color']
+            images.append({'name': name, 'mimeType': 'image/png',
+                           'bufferView': push(solid_png(spec['color'], tex_size))})
+            textures.append({'name': name, 'sampler': 0, 'source': i})
             a = spec.get('alpha', 1.0)
             m = {'name': name,
-                 'pbrMetallicRoughness': {'baseColorFactor': [r, g, b, a],
+                 'pbrMetallicRoughness': {'baseColorTexture': {'index': i},
+                                          'baseColorFactor': [1.0, 1.0, 1.0, a],
                                           'metallicFactor': spec.get('metallic', 0.0),
                                           'roughnessFactor': spec.get('roughness', 0.6)}}
             if a < 1:
                 m['alphaMode'] = 'BLEND'
-                m['doubleSided'] = True
             if 'emissive' in spec:
                 m['emissiveFactor'] = list(spec['emissive'])
             materials.append(m)
 
-        blob = bytearray()
-        views, accessors, meshes, nodes = [], [], [], []
-
-        def push(data, target):
-            while len(blob) % 4:
-                blob.append(0)
-            views.append({'buffer': 0, 'byteOffset': len(blob), 'byteLength': len(data), 'target': target})
-            blob.extend(data)
-            return len(views) - 1
-
-        for part, mats in merged.items():
-            prims = []
-            for name, (pos, nrm, idx) in mats.items():
-                flat_p = [c for p in pos for c in p]
-                flat_n = [c for n in nrm for c in n]
-                flat_i = [i for t in idx for i in t]
-                pv = push(struct.pack('<%df' % len(flat_p), *flat_p), 34962)
-                nv = push(struct.pack('<%df' % len(flat_n), *flat_n), 34962)
-                iv = push(struct.pack('<%dI' % len(flat_i), *flat_i), 34963)
-                lo = [min(p[i] for p in pos) for i in range(3)]
-                hi = [max(p[i] for p in pos) for i in range(3)]
-                accessors += [
-                    {'bufferView': pv, 'componentType': 5126, 'count': len(pos), 'type': 'VEC3', 'min': lo, 'max': hi},
-                    {'bufferView': nv, 'componentType': 5126, 'count': len(nrm), 'type': 'VEC3'},
-                    {'bufferView': iv, 'componentType': 5125, 'count': len(flat_i), 'type': 'SCALAR'},
-                ]
-                a = len(accessors)
-                prims.append({'attributes': {'POSITION': a - 3, 'NORMAL': a - 2}, 'indices': a - 1,
-                              'material': mat_names.index(name)})
-            meshes.append({'name': part, 'primitives': prims})
-            nodes.append({'name': part, 'mesh': len(meshes) - 1})
-
-        nodes.append({'name': self.name, 'children': list(range(len(nodes)))})
+        index = {}
+        for name in self.order:
+            nd = self.nodes[name]
+            pp = self.nodes[nd['parent']]['pivot'] if nd['parent'] else (0.0, 0.0, 0.0)
+            node = {'name': name}
+            t = sub(nd['pivot'], pp)
+            if any(abs(c) > 1e-9 for c in t):
+                node['translation'] = [round(c, 6) for c in t]
+            geos = uv_parts.get(name, [])
+            if geos:
+                piv = nd['pivot']
+                prims = []
+                by_mat = {}
+                for g in geos:
+                    by_mat.setdefault(g.mat, []).append(g)
+                for mname in sorted(by_mat):
+                    pos, nrm, uvs, idx = [], [], [], []
+                    for g in by_mat[mname]:
+                        o = len(pos)
+                        pos += [sub(p, piv) for p in g.pos]
+                        nrm += g.nrm
+                        uvs += g.uv
+                        idx += [i + o for tri in g.idx for i in tri]
+                    fp = [c for p in pos for c in p]
+                    pv = push(struct.pack('<%df' % len(fp), *fp), 34962)
+                    fn = [c for n in nrm for c in n]
+                    nv = push(struct.pack('<%df' % len(fn), *fn), 34962)
+                    fu = [c for u in uvs for c in u]
+                    uvv = push(struct.pack('<%df' % len(fu), *fu), 34962)
+                    iv = push(struct.pack('<%dI' % len(idx), *idx), 34963)
+                    lo = [min(p[k] for p in pos) for k in range(3)]
+                    hi = [max(p[k] for p in pos) for k in range(3)]
+                    accessors += [
+                        {'bufferView': pv, 'componentType': 5126, 'count': len(pos), 'type': 'VEC3', 'min': lo, 'max': hi},
+                        {'bufferView': nv, 'componentType': 5126, 'count': len(nrm), 'type': 'VEC3'},
+                        {'bufferView': uvv, 'componentType': 5126, 'count': len(uvs), 'type': 'VEC2'},
+                        {'bufferView': iv, 'componentType': 5125, 'count': len(idx), 'type': 'SCALAR'},
+                    ]
+                    a = len(accessors)
+                    prims.append({'attributes': {'POSITION': a - 4, 'NORMAL': a - 3, 'TEXCOORD_0': a - 2},
+                                  'indices': a - 1, 'material': used.index(mname)})
+                meshes.append({'name': name, 'primitives': prims})
+                node['mesh'] = len(meshes) - 1
+            index[name] = len(nodes)
+            nodes.append(node)
+        for name in self.order:
+            par = self.nodes[name]['parent']
+            if par:
+                nodes[index[par]].setdefault('children', []).append(index[name])
+        root_name = self.name.lower().replace(' ', '_')
+        nodes.append({'name': root_name,
+                      'children': [index[n] for n in self.order if self.nodes[n]['parent'] is None]})
         doc = {
             'asset': {'version': '2.0', 'generator': 'Claudin meshkit.py',
-                      'extras': {'units': 'metres', 'scale': '1:1'}},
+                      'extras': {'units': 'metres', 'up': '+Y', 'forward': '+X', 'scale': '1:1'}},
             'scene': 0,
-            'scenes': [{'name': self.name, 'nodes': [len(nodes) - 1]}],
+            'scenes': [{'name': root_name, 'nodes': [len(nodes) - 1]}],
             'nodes': nodes, 'meshes': meshes, 'materials': materials,
+            'textures': textures, 'images': images,
+            'samplers': [{'magFilter': 9729, 'minFilter': 9987, 'wrapS': 33071, 'wrapT': 33071}],
             'accessors': accessors, 'bufferViews': views,
             'buffers': [{'byteLength': len(blob)}],
         }
@@ -473,72 +601,58 @@ class Model:
             f.write(struct.pack('<I4s', len(js), b'JSON') + js)
             f.write(struct.pack('<I4s', len(blob), b'BIN\0') + bytes(blob))
 
-    def write_obj(self, obj_path, mtl_name):
-        merged = self._merged()
-        lines = ['# %s - 1:1 scale, units: metres, +Y up, +X forward' % self.name,
-                 'mtllib %s' % mtl_name]
-        off = 1
-        used = set()
-        for part, mats in merged.items():
-            lines.append('o %s' % part)
-            for name, (pos, nrm, idx) in mats.items():
-                used.add(name)
-                lines.append('usemtl %s' % name)
-                lines += ['v %.5f %.5f %.5f' % p for p in pos]
-                lines += ['vn %.4f %.4f %.4f' % n for n in nrm]
-                lines += ['f %d//%d %d//%d %d//%d' % (a + off, a + off, b + off, b + off, c + off, c + off)
-                          for a, b, c in idx]
-                off += len(pos)
-        with open(obj_path, 'w') as f:
-            f.write('\n'.join(lines) + '\n')
-        mtl = []
-        for name in sorted(used):
-            s = self.materials[name]
-            mtl += ['newmtl %s' % name, 'Kd %.4f %.4f %.4f' % tuple(s['color']),
-                    'Ka 0 0 0', 'Ks %.3f %.3f %.3f' % ((0.9 - s.get('roughness', 0.6) * 0.8,) * 3),
-                    'Ns %d' % int(10 + (1 - s.get('roughness', 0.6)) * 400),
-                    'd %.3f' % s.get('alpha', 1.0)]
-            if 'emissive' in s:
-                mtl.append('Ke %.3f %.3f %.3f' % tuple(s['emissive']))
-            mtl.append('')
-        with open(obj_path.rsplit('/', 1)[0] + '/' + mtl_name, 'w') as f:
-            f.write('\n'.join(mtl))
+
+def _srgb(c):
+    c = max(0.0, min(1.0, c))
+    return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
 
 
-# Shared material library (linear-space PBR values).
+def solid_png(color, size):
+    """Single-colour RGB PNG (linear colour converted to sRGB)."""
+    import zlib
+    px = bytes(int(round(_srgb(c) * 255)) for c in color)
+    row = b'\x00' + px * size
+    raw = zlib.compress(row * size, 9)
+
+    def chunk(tag, data):
+        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
+    return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0))
+            + chunk(b'IDAT', raw) + chunk(b'IEND', b''))
+
+
+# Shared material library (linear-space PBR values). Names follow the model-pack list.
 MATERIALS = {
-    'paint':       {'color': (0.93, 0.62, 0.03), 'metallic': 0.1, 'roughness': 0.45},
-    'paint_dark':  {'color': (0.06, 0.06, 0.06), 'metallic': 0.1, 'roughness': 0.55},
-    'steel':       {'color': (0.42, 0.42, 0.43), 'metallic': 0.85, 'roughness': 0.45},
-    'steel_dark':  {'color': (0.10, 0.10, 0.10), 'metallic': 0.7, 'roughness': 0.7},
-    'steel_worn':  {'color': (0.30, 0.29, 0.28), 'metallic': 0.8, 'roughness': 0.55},
-    'edge':        {'color': (0.55, 0.55, 0.56), 'metallic': 0.9, 'roughness': 0.35},
-    'chrome':      {'color': (0.92, 0.92, 0.94), 'metallic': 0.7, 'roughness': 0.18},
-    'rubber':      {'color': (0.025, 0.025, 0.025), 'metallic': 0.0, 'roughness': 0.9},
-    'grille':      {'color': (0.03, 0.03, 0.03), 'metallic': 0.5, 'roughness': 0.6},
-    'glass':       {'color': (0.25, 0.35, 0.40), 'metallic': 0.0, 'roughness': 0.05, 'alpha': 0.35},
-    'lens':        {'color': (1.0, 0.98, 0.9), 'metallic': 0.0, 'roughness': 0.1, 'emissive': (0.9, 0.9, 0.8)},
-    'lens_red':    {'color': (0.8, 0.02, 0.02), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.5, 0.0, 0.0)},
-    'beacon':      {'color': (1.0, 0.45, 0.0), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.6, 0.25, 0.0), 'alpha': 0.85},
-    'seat':        {'color': (0.04, 0.04, 0.045), 'metallic': 0.0, 'roughness': 0.85},
-    'lens_amber':  {'color': (1.0, 0.55, 0.0), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.5, 0.25, 0.0)},
-    'glass_tint':  {'color': (0.03, 0.04, 0.05), 'metallic': 0.2, 'roughness': 0.05, 'alpha': 0.92},
-    'trim_black':  {'color': (0.035, 0.035, 0.038), 'metallic': 0.0, 'roughness': 0.7},
-    'alloy':       {'color': (0.70, 0.71, 0.73), 'metallic': 0.6, 'roughness': 0.3},
-    'car_blue':    {'color': (0.02, 0.07, 0.20), 'metallic': 0.6, 'roughness': 0.25},
-    'car_white':   {'color': (0.86, 0.87, 0.88), 'metallic': 0.1, 'roughness': 0.3},
-    'counterweight': {'color': (0.12, 0.12, 0.13), 'metallic': 0.3, 'roughness': 0.6},
+    'paint_yellow':    {'color': (0.93, 0.62, 0.03), 'metallic': 0.1, 'roughness': 0.45},
+    'paint_blue':      {'color': (0.02, 0.07, 0.20), 'metallic': 0.6, 'roughness': 0.25},
+    'paint_white':     {'color': (0.86, 0.87, 0.88), 'metallic': 0.1, 'roughness': 0.3},
+    'paint_gray_dark': {'color': (0.12, 0.12, 0.13), 'metallic': 0.3, 'roughness': 0.6},
+    'chassis_black':   {'color': (0.06, 0.06, 0.06), 'metallic': 0.1, 'roughness': 0.55},
+    'plastic_black':   {'color': (0.035, 0.035, 0.038), 'metallic': 0.0, 'roughness': 0.7},
+    'steel':           {'color': (0.42, 0.42, 0.43), 'metallic': 0.85, 'roughness': 0.45},
+    'steel_dark':      {'color': (0.10, 0.10, 0.10), 'metallic': 0.7, 'roughness': 0.7},
+    'track_steel':     {'color': (0.30, 0.29, 0.28), 'metallic': 0.8, 'roughness': 0.55},
+    'wear_steel':      {'color': (0.55, 0.55, 0.56), 'metallic': 0.9, 'roughness': 0.35},
+    'chrome':          {'color': (0.92, 0.92, 0.94), 'metallic': 0.7, 'roughness': 0.18},
+    'aluminum':        {'color': (0.70, 0.71, 0.73), 'metallic': 0.6, 'roughness': 0.3},
+    'tyre_rubber':     {'color': (0.025, 0.025, 0.025), 'metallic': 0.0, 'roughness': 0.9},
+    'hose_rubber':     {'color': (0.03, 0.03, 0.03), 'metallic': 0.0, 'roughness': 0.75},
+    'rubber_trim':     {'color': (0.02, 0.02, 0.02), 'metallic': 0.0, 'roughness': 0.8},
+    'seat_fabric':     {'color': (0.04, 0.04, 0.045), 'metallic': 0.0, 'roughness': 0.85},
+    'glass':           {'color': (0.25, 0.35, 0.40), 'metallic': 0.0, 'roughness': 0.05, 'alpha': 0.35},
+    'glass_tinted':    {'color': (0.03, 0.04, 0.05), 'metallic': 0.2, 'roughness': 0.05, 'alpha': 0.92},
+    'lamp_lens':       {'color': (1.0, 0.98, 0.9), 'metallic': 0.0, 'roughness': 0.1, 'emissive': (0.9, 0.9, 0.8)},
+    'lamp_amber':      {'color': (1.0, 0.55, 0.0), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.5, 0.25, 0.0)},
+    'lamp_red':        {'color': (0.8, 0.02, 0.02), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.5, 0.0, 0.0)},
+    'lamp_beacon':     {'color': (1.0, 0.45, 0.0), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.6, 0.25, 0.0)},
 }
 
 
-def save(model, folder, name, obj=False):
-    """Write <folder>/<name>.glb (and optionally .obj/.mtl) next to this file."""
+def save(model, folder, name):
+    """Write <folder>/<name>.glb next to this file."""
     import os
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), folder)
     os.makedirs(out, exist_ok=True)
     model.write_glb(os.path.join(out, name + '.glb'))
-    if obj:
-        model.write_obj(os.path.join(out, name + '.obj'), name + '.mtl')
     lo, hi = model.bounds()
-    print('%s: L %.2f  W %.2f  H %.2f m  | %d verts, %d tris' %
-          (model.name, hi[0] - lo[0], hi[2] - lo[2], hi[1] - lo[1], *model.stats()))
+    print('%s: L %.2f  W %.2f  H %.2f m  | %d verts, %d tris | %.0f px/m' %
+          (model.name, hi[0] - lo[0], hi[2] - lo[2], hi[1] - lo[1], *model.stats(), model.texel_density))

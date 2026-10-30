@@ -73,6 +73,7 @@ def overlap_area(t1, t2):
 
 
 def check(model):
+    model.finalize()   # check the exported rest pose, cylinders included
     tris = []  # (geo_id, part, mat, p0, p1, p2, n, d)
     gid = 0
     for part, geos in model.parts.items():

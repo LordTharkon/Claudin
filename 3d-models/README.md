@@ -1,31 +1,23 @@
 # 3D models
 
-Detailed, true-scale (1:1, metres) 3D models of earthmoving equipment, generated from
-plain Python (standard library only — no Blender or other dependencies).
-
-| Model | Files | Size (L × W × H) | Notes |
-|---|---|---|---|
-| **Crawler dozer** (tracked bulldozer, ~20 t class) | `crawler-dozer/crawler_dozer.glb`, `.obj` + `.mtl` | ≈ 6.1 × 3.5 × 3.3 m (3.6 m to antenna tip) | Semi-U blade 3.40 × 1.30 m, 1.98 m track gauge, 560 mm shoes, 203 mm chain pitch, 3-shank ripper |
-| **Wheel dozer** (rubber-tyred articulated bulldozer, ~30 t class) | `wheel-dozer/wheel_dozer.glb`, `.obj` + `.mtl` | ≈ 8.0 × 4.1 × 3.9 m (4.3 m to antenna tip) | Straight blade 4.00 × 1.55 m, 3.70 m wheelbase, 2.40 m tread, 29.5R25 tyres |
-
-### More models (GLB only)
+A pack of detailed, true-scale (1:1, metres) vehicle models, each a single self-contained
+`.glb`, generated from plain Python (no Blender or other 3D software needed).
 
 | Model | File | Size (L × W × H) | Notes |
 |---|---|---|---|
-| **Backhoe loader** (4WD, ~8 t) | `backhoe-loader/backhoe_loader.glb` | ≈ 7.8 × 2.7 × 3.5 m | 2.30 m loader bucket, 610 mm backhoe bucket with teeth, stabilisers down, boom raised ready to dig; 12.5/80-18 front and 16.9-28 rear tyres |
-| **Compact (mini) excavator** (zero tail swing, ~3.5 t) | `mini-excavator/mini_excavator.glb` | ≈ 3.9 × 1.75 × 2.5 m | 300 mm rubber tracks, 0.87 m tail swing radius, offset boom on swing post, 450 mm bucket, dozer blade, cab |
+| **Crawler dozer** (tracked bulldozer, ~20 t class) | `crawler-dozer/crawler_dozer.glb` | ≈ 6.1 × 3.5 × 3.6 m | Semi-U blade 3.40 × 1.30 m, 1.98 m track gauge, 560 mm shoes, 203 mm chain pitch, 3-shank ripper |
+| **Wheel dozer** (rubber-tyred articulated bulldozer, ~30 t class) | `wheel-dozer/wheel_dozer.glb` | ≈ 8.0 × 4.1 × 4.3 m | Straight blade 4.00 × 1.55 m, 3.70 m wheelbase, 2.40 m tread, 29.5R25 tyres |
+| **Backhoe loader** (4WD, ~8 t) | `backhoe-loader/backhoe_loader.glb` | ≈ 6.6 × 2.4 × 3.8 m | 2.30 m loader bucket, 610 mm backhoe bucket with teeth, boom stowed and stabilisers folded for travel; 12.5/80-18 front and 16.9-28 rear tyres |
+| **Compact (mini) excavator** (zero tail swing, ~3.5 t) | `mini-excavator/mini_excavator.glb` | ≈ 3.6 × 1.75 × 2.5 m | 300 mm rubber tracks, 0.87 m tail swing radius, offset boom on swing post, 450 mm bucket, dozer blade, cab; arm and bucket curled for travel |
 | **Compact track loader** (vertical lift, ~4.5 t) | `compact-track-loader/compact_track_loader.glb` | ≈ 3.4 × 1.98 × 2.1 m | 400 mm rubber tracks on raised-sprocket undercarriage, vertical-lift arms, quick-attach plate, 1.98 m bucket |
 | **Wheel tractor scraper** (single engine, ~16 m³ bowl) | `wheel-tractor-scraper/wheel_tractor_scraper.glb` | ≈ 13.2 × 3.6 × 3.9 m | Gooseneck and draft arms, bowl with apron, ejector, cutting edge and stinger, rear push block; 33.25-29 tyres |
-| **Articulated dump truck** (6x6 off-road, ~40 t class) | `articulated-dump-truck/articulated_dump_truck.glb` | ≈ 10.9 × 3.6 × 3.7 m | Oscillating articulation hitch, tandem bogie with walking beams, tipping body with tail chute and hoist cylinders; 875/65R29 tyres |
-| **Pickup truck** (half-ton crew cab, 5.5 ft bed, 4x4) | `pickup-truck/pickup_truck.glb` | ≈ 5.9 × 2.03 (2.5 with mirrors) × 1.96 m | 3.68 m wheelbase, 275/65R18 all-terrain tyres on 6-spoke alloys, LED lighting, bed with wheelhouses, under-bed spare |
-| **Dually pickup truck** (one-ton heavy duty crew cab, 8 ft bed) | `dually-pickup-truck/dually_pickup_truck.glb` | ≈ 6.7 × 2.44 (3.0 with tow mirrors) × 2.03 m | 4.29 m wheelbase, dual rear wheels with flared fenders, LT235/80R17 tyres, chrome bumpers, roof clearance lights, tow mirrors |
+| **Articulated dump truck** (6x6 off-road, ~40 t class) | `articulated-dump-truck/articulated_dump_truck.glb` | ≈ 10.9 × 3.6 × 3.7 m | Articulation hitch, tandem bogie with walking beams, tipping body with tail chute and hoist cylinders; 875/65R29 tyres |
+| **Pickup truck** (half-ton crew cab, 5.5 ft bed, 4x4) | `pickup-truck/pickup_truck.glb` | ≈ 6.0 × 2.03 (2.5 with mirrors) × 1.96 m | 3.68 m wheelbase, 275/65R18 all-terrain tyres on 6-spoke alloys, LED lighting, bed with wheelhouses, under-bed spare |
+| **Dually pickup truck** (one-ton heavy duty crew cab, 8 ft bed) | `dually-pickup-truck/dually_pickup_truck.glb` | ≈ 6.8 × 2.44 (3.0 with tow mirrors) × 2.03 m | 4.29 m wheelbase, dual rear wheels with flared fenders, LT235/80R17 tyres, chrome bumpers, roof clearance lights, tow mirrors |
 
-Heights in the table are to the top of the cab or roof; antennas and exhausts can add a little.
-The construction machines are in yellow and black; the pickups are dark blue (half-ton) and
-white (dually).
-
-All of these are generic designs based on typical dimensions for their class, not copies of
-any manufacturer's machine.
+Heights are to the top of the cab or roof (or the stowed boom); antennas and exhausts can add a
+little. All of these are generic designs based on typical dimensions for their class — no real
+manufacturer names, model numbers or logos.
 
 ![Crawler dozer](crawler-dozer/preview.png)
 ![Wheel dozer](wheel-dozer/preview.png)
@@ -48,14 +40,44 @@ steering cylinders; arched front fenders, rear walkway decks with tread plate, h
 access ladder; rear engine enclosure with louvres, rear radiator grille and counterweight;
 exhaust and pre-cleaner; straight blade, push arms, lift and tilt cylinders; ROPS cab.
 
-## File formats
+## File conventions (model pack)
 
-* **`.glb`** (glTF 2.0 binary) — recommended. Opens in Blender, Windows 3D Viewer, three.js,
-  Unity/Unreal importers, and online viewers such as gltf-viewer.donmccurdy.com. Each
-  sub-assembly (blade, cab, tracks, wheels, …) is a separate named node.
-* **`.obj` + `.mtl`** — for tools without glTF support. Keep the two files together.
+* **One `.glb` per model**, glTF 2.0, textures embedded, no Draco or other compression.
+* **Units:** metres at real-world scale. **+Y is up, every vehicle faces +X.** The origin is on
+  the ground, centred under the vehicle.
+* **Rest pose:** wheels straight, dump body down, tailgate closed, booms stowed (the backhoe
+  and mini excavator are in travel position, stabilisers folded up).
 
-Coordinates: **+Y up, +X forward**, origin on the ground under the machine's centre, 1 unit = 1 m.
+### Rigging
+
+Every node and mesh has a descriptive name (`cab`, `frame`, `boom_tilt`, …). Moving parts
+carry a suffix and their node origin sits on the real pivot; node rotations are identity in
+the rest pose.
+
+| Suffix | Motion | Used for |
+|---|---|---|
+| `_steer` | rotate about Y at the kingpin | front wheels of the backhoe and pickups |
+| `_spin` | rotate about Z at the wheel centre | every wheel, track idler, sprocket and roller |
+| `_tilt` / `_rotate` | hinge rotation about the pivot | blades, push frames, booms, dippers/arms, buckets, loader arms, ripper, dump body, scraper bowl and apron, tailgate, stabilisers; articulation hitches, excavator slew ring and swing post, linkages |
+| `_slide` | translation | scraper ejector and every hydraulic cylinder rod |
+
+Each hydraulic cylinder is `<name>_rotate` (barrel, origin at its base pin, child of the part
+it is mounted on) with a child `<name>_rod_slide` (origin at the rod-eye pin). Parts that don't
+move have no suffix.
+
+### Materials, textures and UVs
+
+* Materials use only these names: `paint_yellow`, `paint_blue`, `paint_white`,
+  `paint_gray_dark`, `chassis_black`, `plastic_black`, `steel`, `steel_dark`, `track_steel`,
+  `wear_steel`, `chrome`, `aluminum`, `tyre_rubber`, `hose_rubber`, `rubber_trim`,
+  `seat_fabric`, `glass`, `glass_tinted`, `lamp_lens`, `lamp_amber`, `lamp_red`, `lamp_beacon`
+  (each model uses the subset it needs, one material per surface type).
+* Each material has a 1024² PNG `baseColorTexture` named after the material, holding its
+  colour; `baseColorFactor` is white (only the glass materials keep an alpha value).
+  Metal-roughness PBR only, no vertex colours, no extensions.
+* Every primitive has `TEXCOORD_0`. UVs are unwrapped automatically: inside 0–1, no overlaps
+  within each material's texture, one texel density for the whole model, and at least 4 px
+  between islands (and from the texture edge) at 1024².
 
 ## Viewing
 
@@ -82,8 +104,9 @@ build script:
 python3 3d-models/build_all.py
 ```
 
-* `meshkit.py` — tiny mesh library (boxes, cylinders, lathe, extrusions, belt paths) with
-  `.glb` and `.obj` writers
+* `meshkit.py` — mesh library (boxes, cylinders, lathe, extrusions, belt paths), the rigged
+  `Model` (nodes, pivots, rest pose, hydraulic cylinders, centring), materials and the `.glb` writer
+* `uvkit.py` — automatic UV unwrapping and packing
 * `dozer_parts.py` — shared assemblies (blade, cab, lamps, louvres, rails, exhaust)
 * `bodykit.py` — smooth bodywork: lofted cross-sections, rounded boxes, flush glass/trim panels
 * `vehicle_parts.py` — tyres (earthmover, industrial, all-terrain, highway), rims, rubber
@@ -91,3 +114,6 @@ python3 3d-models/build_all.py
 * `build_*.py` — one script per machine (`build_pickup_trucks.py` writes both pickups)
 * `check_zfighting.py` — scans every model for z-fighting (coplanar, overlapping faces of
   different materials) and exits non-zero if it finds any: `python3 3d-models/check_zfighting.py`
+* `validate_glb.py` — reads the generated `.glb` files and checks them against the model-pack
+  rules above (format, orientation and origin, UVs, materials and textures, node naming and
+  rig suffixes), exiting non-zero on any failure: `python3 3d-models/validate_glb.py`

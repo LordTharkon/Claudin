@@ -20,12 +20,12 @@ LIGHT = dict(name='Pickup Truck', folder='pickup-truck', file='pickup_truck',
              wb=3.68, foh=0.86, roh=1.08, width=2.03, bed=1.68,
              tyre_r=0.41, tyre_w=0.275, bead=0.2286, track=1.73,
              rocker=0.50, belt=1.30, hood=1.20, roof=1.94, hood_len=1.57, rake=0.85,
-             paint='car_blue', dually=False)
+             paint='paint_blue', dually=False)
 DUALLY = dict(name='Dually Pickup Truck', folder='dually-pickup-truck', file='dually_pickup_truck',
               wb=4.29, foh=0.92, roh=1.22, width=2.03, rear_width=2.44, bed=2.44,
               tyre_r=0.395, tyre_w=0.245, bead=0.216, track=1.75, dual_c=0.87, dual_gap=0.30,
               rocker=0.56, belt=1.40, hood=1.33, roof=2.02, hood_len=1.65, rake=0.80,
-              paint='car_white', dually=True)
+              paint='paint_white', dually=True)
 
 
 def bump(t):
@@ -131,13 +131,20 @@ class Body:
 
 def build(c):
     m = Model(c['name'], MATERIALS)
+    m.node('frame')
+    m.node('body', 'frame')
+    m.node('cab_glass', 'body')
+    m.node('bed', 'frame')
+    m.node('front_fascia', 'body')
+    m.node('rear_bumper', 'frame')
+    m.node('spare_wheel', 'frame')
     b = Body(c)
     P = c['paint']
     hw, xF, xR, xf, xr = b.hw, b.xF, b.xR, b.xf, b.xr
     xws, xwt, xcb, xbf = b.xws, b.xwt, b.xcb, b.xbf
     rk, belt, hf, roof, wy, Ra = b.rk, b.belt, b.hf, b.roof, b.wy, b.Ra
     chrome = c['dually']
-    trim = 'chrome' if chrome else 'trim_black'
+    trim = 'chrome' if chrome else 'plastic_black'
 
     # ------------------------------------------------------------ lower body (cab + front clip)
     xs = set()
@@ -180,7 +187,7 @@ def build(c):
         if i:
             k = 2 * i
             widx += [(k - 2, k - 1, k + 1), (k - 2, k + 1, k)]
-    m.add('glass', Geo('glass_tint', wpos, [norm(v) for v in wnrm], widx))
+    m.add('cab_glass', Geo('glass_tinted', wpos, [norm(v) for v in wnrm], widx))
 
     # side glass split by a black B-pillar
     yw_b = belt + 0.06
@@ -198,9 +205,9 @@ def build(c):
     for s in (1, -1):
         on_side = lambda u, v, s=s, o=0.004: (u, v, s * (b.g_side(v) + o))
         nrm = (0, b.g_slope, s)
-        m.add('glass', panel('glass_tint', window(xb + 0.05, x_front), on_side, nrm))
-        m.add('glass', panel('glass_tint', window(x_end, xb - 0.05), on_side, nrm))
-        m.add('body', panel('trim_black', [(xb - 0.05, yw_b - 0.015), (xb + 0.05, yw_b - 0.015),
+        m.add('cab_glass', panel('glass_tinted', window(xb + 0.05, x_front), on_side, nrm))
+        m.add('cab_glass', panel('glass_tinted', window(x_end, xb - 0.05), on_side, nrm))
+        m.add('body', panel('plastic_black', [(xb - 0.05, yw_b - 0.015), (xb + 0.05, yw_b - 0.015),
                                            (xb + 0.05, ywt(xb) + 0.02), (xb - 0.05, ywt(xb) + 0.02)],
                             lambda u, v, s=s: (u, v, s * (b.g_side(v) + 0.0045)), nrm))
         # window-line trim
@@ -211,8 +218,8 @@ def build(c):
     zr = lambda y: b.g_side(y) - 0.15
     rg = fillet([(-zr(belt + 0.08), belt + 0.08), (zr(belt + 0.08), belt + 0.08),
                  (zr(roof - 0.13), roof - 0.13), (-zr(roof - 0.13), roof - 0.13)], 0.06)
-    m.add('glass', panel('glass_tint', rg, lambda u, v: (xcb - 0.002, v, u), (-1, 0, 0)))
-    m.add('body', rbox('lens_red', 0.03, 0.035, 0.30, 0.012, (xcb - 0.01, roof - 0.085, 0)))
+    m.add('cab_glass', panel('glass_tinted', rg, lambda u, v: (xcb - 0.002, v, u), (-1, 0, 0)))
+    m.add('body', rbox('lamp_red', 0.03, 0.035, 0.30, 0.012, (xcb - 0.01, roof - 0.085, 0)))
 
     # ------------------------------------------------------------ bed walls (lofted U-section)
     rw = c.get('rear_width', c['width']) / 2
@@ -259,20 +266,21 @@ def build(c):
     m.add('bed', right_wall, [g.mirror_z() for g in right_wall])
 
     # bed floor, front wall, wheelhouses, tailgate
-    m.add('bed', box_span('trim_black', xr + 0.06, xbf - 0.03, floor_y - 0.03, floor_y, -z_in, z_in))
+    m.add('bed', box_span('plastic_black', xr + 0.06, xbf - 0.03, floor_y - 0.03, floor_y, -z_in, z_in))
     x = xr + 0.15
     while x < xbf - 0.05:
-        m.add('bed', box_span('trim_black', x - 0.03, x + 0.03, floor_y, floor_y + 0.012, -z_in + 0.01, z_in - 0.01))
+        m.add('bed', box_span('plastic_black', x - 0.03, x + 0.03, floor_y, floor_y + 0.012, -z_in + 0.01, z_in - 0.01))
         x += 0.24
     m.add('bed', rbox(P, 0.06, belt - rk - 0.14, 2 * z_in + 0.02, 0.02, (xbf - 0.03, (belt + rk + 0.14) / 2, 0)))
     r_wh = Ra + 0.03
     top = [(xR + r_wh * math.cos(a), wy + r_wh * math.sin(a))
            for a in (math.radians(t) for t in range(0, 181, 6)) if wy + r_wh * math.sin(a) >= floor_y - 0.02]
     for s in (1, -1):
-        m.add('bed', extrude('trim_black', top, 0.25).move(z=s * (z_in - 0.125)))
-    m.add('bed', rbox(P, 0.065, belt - rk - 0.13, 2 * z_in - 0.01, 0.02, (xr + 0.033, (belt + rk + 0.13) / 2 - 0.003, 0)))
-    m.add('bed', rbox('trim_black', 0.02, 0.05, 0.24, 0.01, (xr - 0.002, belt - 0.08, 0)))
-    m.add('bed', panel('trim_black', fillet([(-0.62, rk + 0.24), (0.62, rk + 0.24), (0.62, belt - 0.18), (-0.62, belt - 0.18)], 0.04),
+        m.add('bed', extrude('plastic_black', top, 0.25).move(z=s * (z_in - 0.125)))
+    tg = m.node('tailgate_tilt', 'bed', (xr + 0.033, rk + 0.13, 0))   # bottom hinge
+    m.add(tg, rbox(P, 0.065, belt - rk - 0.13, 2 * z_in - 0.01, 0.02, (xr + 0.033, (belt + rk + 0.13) / 2 - 0.003, 0)))
+    m.add(tg, rbox('plastic_black', 0.02, 0.05, 0.24, 0.01, (xr - 0.002, belt - 0.08, 0)))
+    m.add(tg, panel('plastic_black', fillet([(-0.62, rk + 0.24), (0.62, rk + 0.24), (0.62, belt - 0.18), (-0.62, belt - 0.18)], 0.04),
                        lambda u, v: (xr - 0.0015, v, u), (-1, 0, 0)))
 
     # ------------------------------------------------------------ wheel-arch liners and lips
@@ -280,7 +288,7 @@ def build(c):
         e = a0 + 0.03  # stop just short of the sill so the liner ends are not flush with it
         arc_o = [(axle + (Ra - 0.01) * math.cos(a), wy + (Ra - 0.01) * math.sin(a)) for a in (e + (math.pi - 2 * e) * i / 24 for i in range(25))]
         arc_i = [(axle + (Ra + 0.025) * math.cos(a), wy + (Ra + 0.025) * math.sin(a)) for a in (math.pi - e - (math.pi - 2 * e) * i / 24 for i in range(25))]
-        m.add('body', extrude('trim_black', arc_o + arc_i, 2 * width - 0.04))
+        m.add('body', extrude('plastic_black', arc_o + arc_i, 2 * width - 0.04))
         for s in (1, -1):
             zl = b.half_width(axle) + (pod(axle) if axle == xR else 0) - 0.02
             lip = lathe(P, [(Ra + 0.012 + 0.024 * math.cos(t), 0.024 * math.sin(t))
@@ -294,116 +302,116 @@ def build(c):
         for xs_ in (xws + 0.03, xb, xcb + 0.05):
             f = side_lo(xs_)
             pts = [(xs_ - 0.003, rk + 0.06), (xs_ + 0.003, rk + 0.06), (xs_ + 0.003, belt - 0.02), (xs_ - 0.003, belt - 0.02)]
-            m.add('body', panel('trim_black', pts, lambda u, v, f=f, s=s: (u, v, s * (f(v) + 0.0015)), (0, 0, s)))
+            m.add('body', panel('plastic_black', pts, lambda u, v, f=f, s=s: (u, v, s * (f(v) + 0.0015)), (0, 0, s)))
         for xh in (xb - 0.10, xcb + 0.22):
             zh = side_lo(xh)(belt - 0.10)
             m.add('body', rbox(trim if chrome else P, 0.20, 0.04, 0.04, 0.018, (xh - 0.04, belt - 0.10, s * (zh + 0.012))))
-            m.add('body', panel('trim_black', fillet([(xh - 0.15, belt - 0.125), (xh + 0.07, belt - 0.125), (xh + 0.07, belt - 0.075), (xh - 0.15, belt - 0.075)], 0.02),
+            m.add('body', panel('plastic_black', fillet([(xh - 0.15, belt - 0.125), (xh + 0.07, belt - 0.125), (xh + 0.07, belt - 0.075), (xh - 0.15, belt - 0.075)], 0.02),
                                 lambda u, v, s=s, zh=zh: (u, v, s * (zh + 0.0015)), (0, 0, s)))
         # running boards
-        m.add('body', rbox('trim_black', xws - xcb - 0.10, 0.05, 0.17, 0.02, ((xws + xcb) / 2, rk - 0.08, s * (hw + 0.02))))
+        m.add('body', rbox('plastic_black', xws - xcb - 0.10, 0.05, 0.17, 0.02, ((xws + xcb) / 2, rk - 0.08, s * (hw + 0.02))))
         for xm in (xws + 0.3, xcb - 0.3):
             m.add('body', box_span('steel_dark', xm - 0.03, xm + 0.03, rk - 0.08, rk + 0.02, s * (hw - 0.12), s * (hw - 0.05)))
         # mirrors
         if c['dually']:
             arm = [(xws - 0.10, belt + 0.06), (xws - 0.10, belt + 0.32)]
             for ax_, ay_ in arm:
-                m.add('body', cyl_between('trim_black', (ax_, ay_, s * (hw - 0.05)), (ax_ - 0.03, ay_ + 0.04, s * (hw + 0.30)), 0.015, 10))
-            m.add('body', rbox('trim_black', 0.11, 0.42, 0.25, 0.04, (xws - 0.13, belt + 0.24, s * (hw + 0.36))))
+                m.add('body', cyl_between('plastic_black', (ax_, ay_, s * (hw - 0.05)), (ax_ - 0.03, ay_ + 0.04, s * (hw + 0.30)), 0.015, 10))
+            m.add('body', rbox('plastic_black', 0.11, 0.42, 0.25, 0.04, (xws - 0.13, belt + 0.24, s * (hw + 0.36))))
             m.add('body', rbox('glass', 0.012, 0.37, 0.21, 0.004, (xws - 0.19, belt + 0.24, s * (hw + 0.36))))
-            m.add('body', rbox('lens_amber', 0.07, 0.015, 0.12, 0.006, (xws - 0.13, belt + 0.455, s * (hw + 0.36))))
+            m.add('body', rbox('lamp_amber', 0.07, 0.015, 0.12, 0.006, (xws - 0.13, belt + 0.455, s * (hw + 0.36))))
         else:
             m.add('body', rbox(P, 0.10, 0.07, 0.10, 0.03, (xws - 0.12, belt + 0.09, s * (hw - 0.01))))
             m.add('body', rbox(P, 0.12, 0.19, 0.25, 0.05, (xws - 0.15, belt + 0.18, s * (hw + 0.12))))
             m.add('body', rbox('glass', 0.012, 0.16, 0.21, 0.006, (xws - 0.212, belt + 0.18, s * (hw + 0.12))))
-            m.add('body', rbox('lens_amber', 0.05, 0.012, 0.12, 0.005, (xws - 0.12, belt + 0.085, s * (hw + 0.13))))
+            m.add('body', rbox('lamp_amber', 0.05, 0.012, 0.12, 0.005, (xws - 0.12, belt + 0.085, s * (hw + 0.13))))
 
     # roof details
     if c['dually']:
         for k in range(5):
             x = xwt - 0.05
-            m.add('body', rbox('lens_amber', 0.05, 0.03, 0.09, 0.012, (x, b.g_top(x) + b.g_crown(x) + 0.01, -0.30 + 0.15 * k)))
+            m.add('body', rbox('lamp_amber', 0.05, 0.03, 0.09, 0.012, (x, b.g_top(x) + b.g_crown(x) + 0.01, -0.30 + 0.15 * k)))
     else:
         x = xcb + 0.30
-        m.add('body', extrude('trim_black', fillet([(x + 0.08, 0), (x - 0.10, 0), (x - 0.06, 0.06), (x - 0.02, 0.065)], 0.01), 0.035)
+        m.add('body', extrude('plastic_black', fillet([(x + 0.08, 0), (x - 0.10, 0), (x - 0.06, 0.06), (x - 0.02, 0.065)], 0.01), 0.035)
               .move(y=b.g_top(x) + b.g_crown(x) - 0.002))
 
     # ------------------------------------------------------------ front fascia
     fz = b.half_width(xf) + b.nose_inset(xf)  # half-width of the nose just before the round-over
     gy0, gy1 = rk + 0.17, hf - 0.11
     if chrome:
-        m.add('front', rbox('chrome', 0.07, gy1 - gy0 + 0.06, 1.34, 0.035, (xf - 0.005, (gy0 + gy1) / 2, 0)))
-        m.add('front', rbox('grille', 0.04, gy1 - gy0 - 0.03, 1.20, 0.02, (xf + 0.015, (gy0 + gy1) / 2, 0)))
+        m.add('front_fascia', rbox('chrome', 0.07, gy1 - gy0 + 0.06, 1.34, 0.035, (xf - 0.005, (gy0 + gy1) / 2, 0)))
+        m.add('front_fascia', rbox('plastic_black', 0.04, gy1 - gy0 - 0.03, 1.20, 0.02, (xf + 0.015, (gy0 + gy1) / 2, 0)))
         y = gy0 + 0.04
         while y < gy1 - 0.03:
-            m.add('front', rbox('chrome', 0.03, 0.045, 1.20, 0.015, (xf + 0.03, y, 0)))
+            m.add('front_fascia', rbox('chrome', 0.03, 0.045, 1.20, 0.015, (xf + 0.03, y, 0)))
             y += 0.095
-        m.add('front', rbox('chrome', 0.03, gy1 - gy0 - 0.03, 0.05, 0.015, (xf + 0.032, (gy0 + gy1) / 2, 0)))
+        m.add('front_fascia', rbox('chrome', 0.03, gy1 - gy0 - 0.03, 0.05, 0.015, (xf + 0.032, (gy0 + gy1) / 2, 0)))
     else:
-        m.add('front', rbox('trim_black', 0.07, gy1 - gy0 + 0.05, 1.30, 0.04, (xf - 0.005, (gy0 + gy1) / 2, 0)))
-        m.add('front', rbox('grille', 0.04, gy1 - gy0 - 0.03, 1.18, 0.025, (xf + 0.012, (gy0 + gy1) / 2, 0)))
+        m.add('front_fascia', rbox('plastic_black', 0.07, gy1 - gy0 + 0.05, 1.30, 0.04, (xf - 0.005, (gy0 + gy1) / 2, 0)))
+        m.add('front_fascia', rbox('plastic_black', 0.04, gy1 - gy0 - 0.03, 1.18, 0.025, (xf + 0.012, (gy0 + gy1) / 2, 0)))
         rows = int((gy1 - gy0 - 0.04) / 0.055)
         for i in range(rows):
             y = gy0 + 0.04 + i * 0.055
             for k in range(-5, 6):
                 zz = k * 0.105 + (0.05 if i % 2 else 0)
                 if abs(zz) < 0.56:
-                    m.add('front', rbox('trim_black', 0.02, 0.03, 0.07, 0.01, (xf + 0.032, y, zz)))
-        m.add('front', rbox(P, 0.03, 0.035, 1.18, 0.015, (xf + 0.03, (gy0 + gy1) / 2 + 0.03, 0)))  # body-colour bar
+                    m.add('front_fascia', rbox('plastic_black', 0.02, 0.03, 0.07, 0.01, (xf + 0.032, y, zz)))
+        m.add('front_fascia', rbox(P, 0.03, 0.035, 1.18, 0.015, (xf + 0.03, (gy0 + gy1) / 2 + 0.03, 0)))  # body-colour bar
     # headlamps wrapping round the corners
     hy = hf - 0.16
     for s in (1, -1):
-        m.add('front', rbox('trim_black', 0.06, 0.14, 0.30, 0.03, (xf - 0.015, hy, s * 0.82)))
-        corner = rbox('trim_black', 0.20, 0.13, 0.06, 0.03, (xf - 0.10, hy, s * (fz - 0.03)))
-        m.add('front', corner)
-        m.add('front', rbox('lens', 0.015, 0.018, 0.28, 0.008, (xf + 0.017, hy + 0.045, s * 0.82)))
-        m.add('front', rbox('lens', 0.18, 0.016, 0.015, 0.006, (xf - 0.10, hy + 0.045, s * (fz + 0.002))))
+        m.add('front_fascia', rbox('plastic_black', 0.06, 0.14, 0.30, 0.03, (xf - 0.015, hy, s * 0.82)))
+        corner = rbox('plastic_black', 0.20, 0.13, 0.06, 0.03, (xf - 0.10, hy, s * (fz - 0.03)))
+        m.add('front_fascia', corner)
+        m.add('front_fascia', rbox('lamp_lens', 0.015, 0.018, 0.28, 0.008, (xf + 0.017, hy + 0.045, s * 0.82)))
+        m.add('front_fascia', rbox('lamp_lens', 0.18, 0.016, 0.015, 0.006, (xf - 0.10, hy + 0.045, s * (fz + 0.002))))
         for zc in (0.74, 0.86):
-            m.add('front', cylinder('lens', 0.035, 0.012, 20).rotate('z', 90).at((xf + 0.017, hy - 0.015, s * zc)))
-        m.add('front', rbox('lens_amber', 0.012, 0.015, 0.12, 0.006, (xf + 0.017, hy - 0.055, s * 0.90)))
+            m.add('front_fascia', cylinder('lamp_lens', 0.035, 0.012, 20).rotate('z', 90).at((xf + 0.017, hy - 0.015, s * zc)))
+        m.add('front_fascia', rbox('lamp_amber', 0.012, 0.015, 0.12, 0.006, (xf + 0.017, hy - 0.055, s * 0.90)))
     # front bumper (wrap-around), valance, skid plate, fog lamps, tow hooks
     bmat = 'chrome' if chrome else P
     bump_geo = rbox(bmat, 0.22, 0.24, 2 * hw - 0.02, 0.06, (xf - 0.01, rk + 0.02, 0))
-    m.add('front', warp(bump_geo, lambda p: (p[0] - 0.13 * (p[2] / hw) ** 4, p[1], p[2])))
-    m.add('front', warp(rbox('trim_black', 0.12, 0.10, 1.50, 0.04, (xf + 0.01, rk - 0.11, 0)),
+    m.add('front_fascia', warp(bump_geo, lambda p: (p[0] - 0.13 * (p[2] / hw) ** 4, p[1], p[2])))
+    m.add('front_fascia', warp(rbox('plastic_black', 0.12, 0.10, 1.50, 0.04, (xf + 0.01, rk - 0.11, 0)),
                         lambda p: (p[0] - 0.10 * (p[2] / 0.75) ** 4, p[1], p[2])))
-    m.add('front', rbox('steel_dark', 0.35, 0.02, 0.80, 0.01, (xf - 0.15, rk - 0.16, 0)))
+    m.add('front_fascia', rbox('steel_dark', 0.35, 0.02, 0.80, 0.01, (xf - 0.15, rk - 0.16, 0)))
     for s in (1, -1):
-        m.add('front', rbox('trim_black', 0.03, 0.08, 0.16, 0.03, (xf + 0.095, rk - 0.01, s * 0.70)))
-        m.add('front', cylinder('lens', 0.03, 0.01, 18).rotate('z', 90).at((xf + 0.11, rk - 0.01, s * 0.70)))
-        m.add('front', rbox('lens_red' if not chrome else 'steel_dark', 0.08, 0.05, 0.04, 0.015, (xf + 0.08, rk - 0.10, s * 0.42)))
+        m.add('front_fascia', rbox('plastic_black', 0.03, 0.08, 0.16, 0.03, (xf + 0.095, rk - 0.01, s * 0.70)))
+        m.add('front_fascia', cylinder('lamp_lens', 0.03, 0.01, 18).rotate('z', 90).at((xf + 0.11, rk - 0.01, s * 0.70)))
+        m.add('front_fascia', rbox('lamp_red' if not chrome else 'steel_dark', 0.08, 0.05, 0.04, 0.015, (xf + 0.08, rk - 0.10, s * 0.42)))
 
     # ------------------------------------------------------------ rear
     for s in (1, -1):
         zt_ = b.side_fn(xr + 0.01)(belt - 0.2)
-        m.add('rear', rbox('lens_red', 0.035, 0.40, 0.11, 0.015, (xr + 0.002, belt - 0.24, s * (zt_ - 0.058))))
-        m.add('rear', rbox('lens', 0.037, 0.06, 0.08, 0.01, (xr - 0.001, belt - 0.30, s * (zt_ - 0.058))))
-    rb_mat = 'chrome' if chrome else 'trim_black'
-    m.add('rear', warp(rbox(rb_mat, 0.20, 0.20, 2 * hw - 0.04, 0.05, (xr - 0.05, rk, 0)),
+        m.add('rear_bumper', rbox('lamp_red', 0.035, 0.40, 0.11, 0.015, (xr + 0.002, belt - 0.24, s * (zt_ - 0.058))))
+        m.add('rear_bumper', rbox('lamp_lens', 0.037, 0.06, 0.08, 0.01, (xr - 0.001, belt - 0.30, s * (zt_ - 0.058))))
+    rb_mat = 'chrome' if chrome else 'plastic_black'
+    m.add('rear_bumper', warp(rbox(rb_mat, 0.20, 0.20, 2 * hw - 0.04, 0.05, (xr - 0.05, rk, 0)),
                        lambda p: (p[0] + 0.05 * (p[2] / hw) ** 4, p[1], p[2])))
-    m.add('rear', rbox('trim_black', 0.06, 0.04, 0.80, 0.015, (xr - 0.13, rk + 0.085, 0)))  # step pad
-    m.add('rear', rbox('trim_black', 0.02, 0.15, 0.34, 0.01, (xr - 0.15, rk - 0.01, 0)))
-    m.add('rear', box_span('car_white', xr - 0.165, xr - 0.16, rk - 0.07, rk + 0.05, -0.15, 0.15))
-    m.add('rear', box_span('steel_dark', xr - 0.22, xr + 0.10, rk - 0.20, rk - 0.13, -0.035, 0.035))
+    m.add('rear_bumper', rbox('plastic_black', 0.06, 0.04, 0.80, 0.015, (xr - 0.13, rk + 0.085, 0)))  # step pad
+    m.add('rear_bumper', rbox('plastic_black', 0.02, 0.15, 0.34, 0.01, (xr - 0.15, rk - 0.01, 0)))
+    m.add('rear_bumper', box_span('paint_white', xr - 0.165, xr - 0.16, rk - 0.07, rk + 0.05, -0.15, 0.15))
+    m.add('rear_bumper', box_span('steel_dark', xr - 0.22, xr + 0.10, rk - 0.20, rk - 0.13, -0.035, 0.035))
 
     # dually pod marker lights
     if c['dually']:
         for s in (1, -1):
-            for dx, mat in ((0.60, 'lens_amber'), (-0.60, 'lens_red')):
+            for dx, mat in ((0.60, 'lamp_amber'), (-0.60, 'lamp_red')):
                 x = xR + dx
                 z = b.side_fn(x, pod=pod(x))(rk + 0.40)
                 m.add('bed', rbox(mat, 0.06, 0.03, 0.02, 0.008, (x, rk + 0.40, s * (z + 0.005))))
 
     # ------------------------------------------------------------ chassis
-    ch = 'chassis'
+    ch = 'frame'
     for s in (1, -1):
-        m.add(ch, box_span('trim_black', xr + 0.15, xf - 0.15, rk - 0.16, rk + 0.04, s * 0.40, s * 0.50))
+        m.add(ch, box_span('plastic_black', xr + 0.15, xf - 0.15, rk - 0.16, rk + 0.04, s * 0.40, s * 0.50))
         m.add(ch, box_between('steel_dark', (xR + 0.70, rk - 0.02, s * 0.48), (xR - 0.70, rk - 0.02, s * 0.48), 0.07, 0.06))
         m.add(ch, box_between('steel_dark', (xR + 0.40, rk - 0.10, s * 0.48), (xR - 0.40, rk - 0.10, s * 0.48), 0.07, 0.05))
         m.add(ch, cyl_between('steel_dark', (xR + 0.15, wy, s * 0.55), (xR + 0.25, rk, s * 0.45), 0.03, 10))
         m.add(ch, cyl_between('steel_dark', (xF - 0.10, wy, s * 0.60), (xF - 0.05, rk + 0.15, s * 0.55), 0.04, 10))
     for x in (xf - 0.25, xws, xcb, xR, xr + 0.25):
-        m.add(ch, box_span('trim_black', x - 0.04, x + 0.04, rk - 0.14, rk - 0.02, -0.40, 0.40))
+        m.add(ch, box_span('plastic_black', x - 0.04, x + 0.04, rk - 0.14, rk - 0.02, -0.40, 0.40))
     zt = c['track'] / 2
     m.add(ch, cyl_between('steel_dark', (xR, wy, -zt + 0.05), (xR, wy, zt - 0.05), 0.05, 16))
     m.add(ch, sphere('steel_dark', 0.15, 18, 9).at((xR, wy, 0)))
@@ -433,16 +441,19 @@ def build(c):
         inner = tr + rim(bd, w, 'steel', 'steel', nuts=8)
         zc, gap = c['dual_c'], c['dual_gap'] / 2
         for s, sd in ((1, 'right'), (-1, 'left')):
-            m.add('wheel_front_' + sd, place_wheel(front, (xF, wy, s * zt), s))
-            m.add('wheel_rear_outer_' + sd, place_wheel(outer, (xR, wy, s * (zc + gap)), s))
-            m.add('wheel_rear_inner_' + sd, place_wheel(inner, (xR, wy, s * (zc - gap)), s))
-            m.add('wheel_rear_outer_' + sd, cyl_between('steel_dark', (xR, wy, s * (zc - gap)), (xR, wy, s * (zc + gap - 0.08)), 0.11, 20))
+            st = m.node('wheel_front_%s_steer' % sd, 'frame', (xF, wy, s * (zt - 0.10)))
+            m.add(m.node('wheel_front_%s_spin' % sd, st, (xF, wy, s * zt)), place_wheel(front, (xF, wy, s * zt), s))
+            rr = m.node('wheel_rear_%s_spin' % sd, 'frame', (xR, wy, s * zc))   # dual pair turns together
+            m.add(rr, place_wheel(outer, (xR, wy, s * (zc + gap)), s))
+            m.add(rr, place_wheel(inner, (xR, wy, s * (zc - gap)), s))
+            m.add(rr, cyl_between('steel_dark', (xR, wy, s * (zc - gap)), (xR, wy, s * (zc + gap - 0.08)), 0.11, 20))
         spare = tr + rim(bd, w, 'steel', 'steel', nuts=8)
     else:
-        whl = tyre(r, w, bd, 'at') + rim(bd, w, 'alloy', 'alloy', nuts=6)
+        whl = tyre(r, w, bd, 'at') + rim(bd, w, 'aluminum', 'aluminum', nuts=6)
         for s, sd in ((1, 'right'), (-1, 'left')):
-            m.add('wheel_front_' + sd, place_wheel(whl, (xF, wy, s * zt), s))
-            m.add('wheel_rear_' + sd, place_wheel(whl, (xR, wy, s * zt), s))
+            st = m.node('wheel_front_%s_steer' % sd, 'frame', (xF, wy, s * (zt - 0.08)))
+            m.add(m.node('wheel_front_%s_spin' % sd, st, (xF, wy, s * zt)), place_wheel(whl, (xF, wy, s * zt), s))
+            m.add(m.node('wheel_rear_%s_spin' % sd, 'frame', (xR, wy, s * zt)), place_wheel(whl, (xR, wy, s * zt), s))
         spare = tyre(r, w, bd, 'at') + rim(bd, w, 'steel', 'steel_dark', nuts=6)
     m.add('spare_wheel', [g.at((xr + 0.60, rk - 0.16, 0)) for g in spare])
     return m
