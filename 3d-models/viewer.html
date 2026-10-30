@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dozer Model Viewer</title>
+<style>
+  :root { --bg: #e9ecef; --panel: rgba(255,255,255,.88); --ink: #1d2125; --muted: #5c6670; --accent: #d98e04; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15181b; --panel: rgba(30,34,38,.88); --ink: #e8eaed; --muted: #9aa3ab; }
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 14px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  #ui { position: absolute; top: 16px; left: 16px; right: 16px; max-width: 360px; padding: 14px 16px;
+    background: var(--panel); border-radius: 10px; backdrop-filter: blur(6px); box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  button { font: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--muted);
+    background: transparent; color: var(--ink); cursor: pointer; }
+  button.on { background: var(--accent); border-color: var(--accent); color: #111; }
+  #dims { color: var(--muted); font-variant-numeric: tabular-nums; }
+  #err { color: #c0392b; display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="ui">
+  <h1>Dozer models · 1:1 scale</h1>
+  <div class="row" id="models"></div>
+  <div class="row">
+    <button id="human" class="on">1.8 m person</button>
+    <button id="wire">Wireframe</button>
+    <button id="spin">Auto-rotate</button>
+  </div>
+  <div id="dims">Loading…</div>
+  <div id="err">Couldn't load the model. Serve this folder over HTTP (see README).</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const MODELS = {
+  'Crawler dozer': 'crawler-dozer/crawler_dozer.glb',
+  'Wheel dozer': 'wheel-dozer/wheel_dozer.glb',
+};
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+scene.background = new THREE.Color(dark ? 0x15181b : 0xe9ecef);
+
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.05, 200);
+camera.position.set(7, 4.5, 8);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.2, 0);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x666655, 1.4));
+const sun = new THREE.DirectionalLight(0xffffff, 2.4);
+sun.position.set(6, 10, 5);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7 });
+scene.add(sun);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60),
+  new THREE.MeshStandardMaterial({ color: dark ? 0x23272b : 0xd5d9dd, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+const grid = new THREE.GridHelper(30, 30, 0x888888, dark ? 0x3a4046 : 0xb8bec4); // 1 m squares
+grid.position.y = 0.002;
+scene.add(grid);
+
+// simple 1.8 m reference figure
+const human = new THREE.Group();
+const skin = new THREE.MeshStandardMaterial({ color: 0x3a6ea5, roughness: .7 });
+const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 1.05, 6, 16), skin);
+body.position.y = 0.2 + 0.525 + 0.02;
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 12), skin);
+head.position.y = 1.68;
+human.add(body, head);
+human.traverse(o => o.castShadow = true);
+scene.add(human);
+
+const loader = new GLTFLoader();
+let current = null, wire = false;
+const dims = document.getElementById('dims');
+
+function load(name) {
+  document.querySelectorAll('#models button').forEach(b => b.classList.toggle('on', b.textContent === name));
+  dims.textContent = 'Loading…';
+  loader.load(MODELS[name], gltf => {
+    if (current) scene.remove(current);
+    current = gltf.scene;
+    current.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.material.wireframe = wire; } });
+    scene.add(current);
+    const b = new THREE.Box3().setFromObject(current), s = b.getSize(new THREE.Vector3());
+    human.position.set(b.min.x - 0.8, 0, b.max.z + 0.3);
+    dims.textContent = `L ${s.x.toFixed(2)} m · W ${s.z.toFixed(2)} m · H ${s.y.toFixed(2)} m`;
+    document.getElementById('err').style.display = 'none';
+  }, undefined, () => { document.getElementById('err').style.display = 'block'; dims.textContent = ''; });
+}
+
+for (const name of Object.keys(MODELS)) {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.onclick = () => load(name);
+  document.getElementById('models').appendChild(b);
+}
+const toggle = (id, fn) => document.getElementById(id).onclick = e => e.target.classList.toggle('on', fn());
+toggle('human', () => (human.visible = !human.visible));
+toggle('wire', () => { wire = !wire; current?.traverse(o => o.isMesh && (o.material.wireframe = wire)); return wire; });
+toggle('spin', () => (controls.autoRotate = !controls.autoRotate));
+
+const params = new URLSearchParams(location.search);
+load(params.get('model') in MODELS ? params.get('model') : Object.keys(MODELS)[0]);
+if (params.has('cam')) { const [x, y, z] = params.get('cam').split(',').map(Number); camera.position.set(x, y, z); }
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>
