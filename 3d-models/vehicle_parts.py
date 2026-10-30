@@ -208,7 +208,7 @@ def dig_bucket(width, size=1.0, teeth=5, mat='paint', ears=0.2):
     for sg in (1, -1):
         out.append(extrude(mat, side, t * 1.2).move(z=sg * (width / 2 - t * 0.6)))
     # cutting lip, wear strips and teeth
-    out.append(extrude('edge', _shell([(0.24 * s, -0.66 * s), (0.44 * s, -0.59 * s)], -t * 1.6), width))
+    out.append(extrude('edge', _shell([(0.24 * s, -0.66 * s), (0.44 * s, -0.59 * s)], -t * 1.6), width - 0.006))
     for k in range(3):
         z = (k - 1) * width * 0.3
         out.append(extrude('steel_worn', _shell(curve[1:6], t * 0.8), 0.04 * s).move(z=z))
@@ -236,7 +236,7 @@ def loader_bucket(width, depth=0.75, height=0.65, mat='paint', teeth=0, edge='ed
     side = curve + [(depth * 0.55, height * 0.75)]
     for sg in (1, -1):
         out.append(extrude(mat, side, 0.02).move(z=sg * (width / 2 - 0.01)))
-    out.append(extrude(edge, [(depth * 0.55, 0.0), (depth + 0.03, 0.0), (depth + 0.03, 0.02), (depth * 0.55, 0.03)], width))
+    out.append(extrude(edge, [(depth * 0.55, -0.004), (depth + 0.03, -0.004), (depth + 0.03, 0.02), (depth * 0.55, 0.03)], width - 0.006))
     out.append(box(mat, 0.06, 0.05, width, (depth * 0.32, height + 0.01, 0)))  # spill guard lip
     for k in range(teeth):
         z = -width / 2 + width * (k + 0.5) / teeth

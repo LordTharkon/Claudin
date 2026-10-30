@@ -53,7 +53,7 @@ def upper(m):
     yb = 0.56
     arc = [(0.87 * math.cos(math.radians(a)), 0.87 * math.sin(math.radians(a))) for a in range(90, 271, 6)]
     outline = [(0.55, 0.87)] + arc + [(0.55, -0.87), (0.80, -0.62), (0.80, 0.62)]
-    m.add(p, plan('paint', outline, yb, 0.95))
+    m.add(p, plan('paint', outline, yb + 0.004, 0.95))
     m.add(p, plan('paint_dark', outline, yb, yb + 0.06).scale(1.01, 1, 1.01))
     # counterweight band around the tail
     cw = [(0.89 * math.cos(math.radians(a)), 0.89 * math.sin(math.radians(a))) for a in range(118, 243, 4)]
@@ -68,16 +68,16 @@ def upper(m):
     m.add(p, box_span('paint_dark', 0.10, 0.11, 0.97, 1.22, 0.82, 0.825))
     m.add(p, louvres(-0.30, 0.0, 1.0, 1.2, 0.82, 1, 0.04))
     m.add(p, louvres(-0.32, -0.05, 1.0, 1.2, -0.80, -1, 0.04))
-    m.add(p, cyl_between('grille', (-0.55, 1.28, 0.45), (-0.55, 1.45, 0.45), 0.03, 12))  # exhaust
+    m.add(p, cyl_between('grille', (-0.55, 1.29, 0.45), (-0.55, 1.45, 0.45), 0.03, 12))  # exhaust
     m.add(p, cylinder('steel', 0.05, 0.03, 16).at((0.30, 1.25, 0.60)))                   # fuel cap
     m.add(p, box('lens_red', 0.02, 0.06, 0.10, (-0.85, 0.85, 0.22)))
     m.add(p, box('lens_red', 0.02, 0.06, 0.10, (-0.85, 0.85, -0.22)))
     # cab on the left
     m.add('cab', [g.move(z=-0.36) for g in cab(-0.36, 0.62, 0.95, 2.30, 0.47, sill=0.25, door_side=-1)])
     # swing post on the front of the upper
-    m.add(p, box_span('paint', 0.70, 0.92, yb, 1.02, BOOM_Z - 0.20, BOOM_Z + 0.20))
+    m.add(p, box_span('paint', 0.70, 0.92, yb + 0.004, 1.02, BOOM_Z - 0.20, BOOM_Z + 0.20))
     m.add('boom', box_span('paint', 0.90, 1.12, 0.60, 1.00, BOOM_Z - 0.16, BOOM_Z + 0.16))
-    for y in (0.64, 0.96):
+    for y in (0.645, 0.955):
         m.add('boom', cyl_between('steel', (0.94, y - 0.04, BOOM_Z), (0.94, y + 0.04, BOOM_Z), 0.07, 14))
     m.add(p, hydraulic_cylinder((0.10, 0.80, 0.62), (0.92, 0.80, BOOM_Z + 0.22), 0.05, 0.03, extension=0.55))
 

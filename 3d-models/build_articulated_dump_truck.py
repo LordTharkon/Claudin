@@ -45,8 +45,8 @@ def tractor(m):
         m.add(p, box_span('paint_dark', 4.95, 4.96, 1.32, 2.05, s * 0.749, s * 0.755))
     m.add(p, box_span('grille', 5.40, 5.43, 1.48, 1.84, -0.62, 0.62))
     y = 1.52
-    while y < 1.83:
-        m.add(p, box_span('paint_dark', 5.42, 5.44, y, y + 0.02, -0.62, 0.62))
+    while y < 1.80:
+        m.add(p, box_span('paint_dark', 5.42, 5.44, y, y + 0.02, -0.61, 0.61))
         y += 0.05
     # bumper with steps, tow pin and lights
     m.add(p, extrude('paint', [(5.20, 0.72), (5.50, 0.72), (5.58, 0.82), (5.58, 1.22), (5.20, 1.30)], 2.10))
@@ -71,7 +71,7 @@ def tractor(m):
         y = 0.52 + i * 0.29
         x = 2.25 + 0.15 * (y - 0.40) / 1.53
         m.add('cab', box_span('grille', x - 0.07, x + 0.07, y, y + 0.03, -1.21, -0.96))
-    m.add(p, cyl_between('grille', (2.15, 1.96, 0.70), (2.15, 3.10, 0.70), 0.06, 14))  # exhaust stack
+    m.add(p, cyl_between('grille', (HITCH_X - 0.07, 1.38, 0.70), (HITCH_X - 0.07, 3.10, 0.70), 0.06, 14))  # exhaust stack
     # articulation / oscillation joint and steering cylinders
     m.add('hitch', cyl_between('steel_dark', (HITCH_X - 0.30, 1.10, 0), (HITCH_X + 0.10, 1.10, 0), 0.34, 28))
     for y in (0.85, 1.35):
@@ -86,7 +86,7 @@ def trailer(m):
     for s in (1, -1):
         m.add(p, box_span('paint_dark', -4.35, HITCH_X - 0.45, 0.95, 1.45, s * 0.32, s * 0.52))
         m.add(p, box('lens_red', 0.02, 0.10, 0.18, (-4.36, 1.30, s * 0.42)))
-        m.add(p, box_span('rubber', -4.70, -4.67, 0.35, 1.70, s * 0.85, s * 1.70))  # mud flaps
+        m.add(p, box_span('rubber', -4.70, -4.67, 0.35, 1.70, s * 0.85, s * 1.69))  # mud flaps
         m.add(p, box_span('paint_dark', -4.72, -4.30, 1.66, 1.72, s * 0.50, s * 1.70))
     for x in (1.0, -0.6, -2.8, -4.25):
         m.add(p, box_span('paint_dark', x - 0.08, x + 0.08, 1.05, 1.40, -0.40, 0.40))

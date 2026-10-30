@@ -40,14 +40,14 @@ def top_run_y(x):
 def track_shoe():
     """One shoe in local (u=along chain, n=outward, z=across) space."""
     g = [box('steel_dark', PITCH * 0.97, T_PLATE, SHOE_W, (0, T_PLATE / 2, 0)),
-         box('steel_dark', 0.032, H_GROUSER, SHOE_W, (PITCH * 0.22, T_PLATE + H_GROUSER / 2, 0)),
-         box('steel_dark', 0.02, H_GROUSER * 0.5, SHOE_W, (-PITCH * 0.3, T_PLATE + H_GROUSER * 0.25, 0))]
+         box('steel_dark', 0.032, H_GROUSER + 0.005, SHOE_W, (PITCH * 0.22, T_PLATE + H_GROUSER / 2 - 0.0025, 0)),
+         box('steel_dark', 0.02, H_GROUSER * 0.5 + 0.005, SHOE_W, (-PITCH * 0.3, T_PLATE + H_GROUSER * 0.25 - 0.0025, 0))]
     for s in (1, -1):
         # chain links (rails the rollers run on) and pin bosses
         g.append(box('steel_worn', PITCH * 0.98, H_LINK * 0.85, 0.055, (0, -H_LINK * 0.45, s * 0.115)))
         g.append(cylinder('steel_dark', 0.032, 0.03, 10).rotate('x', 90).at((PITCH / 2, -H_LINK * 0.5, s * 0.157)))
         for bx in (-0.05, 0.05):  # shoe bolts
-            g.append(cylinder('steel_worn', 0.013, 0.012, 6).at((bx, T_PLATE + 0.006, s * 0.115)))
+            g.append(cylinder('steel_worn', 0.013, 0.012, 6).at((bx, T_PLATE + 0.004, s * 0.115)))
     g.append(cylinder('steel_worn', 0.036, 0.175, 14).rotate('x', 90).at((PITCH / 2, -H_LINK * 0.5, 0)))
     return g
 
@@ -98,7 +98,7 @@ def track_side(m):
                                    (0.1, 0.07), (0.085, 0.085), (0.085, 0.145), (0.07, 0.16), (0, 0.16)], 24)
         m.add('undercarriage_right', car.rotate('x', 90).at((x, cy, ZT)))
         m.add('undercarriage_right', box_span('paint_dark', x - 0.05, x + 0.05, 0.74, cy, ZT - 0.24, ZT - 0.18))
-        m.add('undercarriage_right', cyl_between('steel_dark', (x, cy, ZT - 0.24), (x, cy, ZT - 0.16), 0.03, 10))
+        m.add('undercarriage_right', cyl_between('steel_dark', (x, cy, ZT - 0.235), (x, cy, ZT - 0.16), 0.03, 10))
 
     # front idler with centre flange and spoked web
     ix, iy, ir = IDLER
@@ -106,7 +106,7 @@ def track_side(m):
                                (0.42, 0.065), (0.38, 0.085), (0.38, 0.145), (0.34, 0.16), (0, 0.16)], 48)
     m.add('undercarriage_right', idl.rotate('x', 90).at((ix, iy, ZT)))
     for s in (1, -1):
-        m.add('undercarriage_right', cylinder('steel_dark', 0.12, 0.06, 20).rotate('x', 90).at((ix, iy, ZT + s * 0.19)))
+        m.add('undercarriage_right', cylinder('steel_dark', 0.12, 0.06, 20).rotate('x', 90).at((ix, iy, ZT + s * 0.196)))
         for k in range(6):
             a = math.radians(k * 60 + 30)
             m.add('undercarriage_right', cylinder('grille', 0.055, 0.005, 16).rotate('x', 90)
@@ -149,7 +149,7 @@ def body(m):
     hood = [(-0.58, 1.06), (0.58, 1.06), (0.58, 1.86), (0.47, 1.98), (-0.47, 1.98), (-0.58, 1.86)]
     hood_g = extrude('paint', hood, 2.0).rotate('y', 90).move(x=0.75)
     m.add(p, hood_g)
-    m.add(p, box_span('paint_dark', -0.25, 1.75, 1.975, 1.99, -0.30, 0.30))  # top access panel seam
+    m.add(p, box_span('paint_dark', -0.23, 1.74, 1.975, 1.99, -0.30, 0.30))  # top access panel seam
     for s in (1, -1):
         m.add(p, louvres(0.05, 1.25, 1.22, 1.78, s * 0.58, s))
         m.add(p, box_span('paint_dark', 0.62, 0.635, 1.10, 1.84, s * 0.579, s * 0.585))  # door seam

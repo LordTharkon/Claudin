@@ -42,7 +42,7 @@ def tractor(m):
     m.add(p, box_span('grille', 6.42, 6.44, 1.40, 2.30, -0.62, 0.62))
     y = 1.45
     while y < 2.28:
-        m.add(p, box('paint_dark', 0.04, 0.025, 1.24, (6.45, y, 0)).rotate('z', -20, (6.45, y, 0)))
+        m.add(p, box('paint_dark', 0.04, 0.025, 1.22, (6.45, y, 0)).rotate('z', -20, (6.45, y, 0)))
         y += 0.06
     m.add(p, extrude('paint', [(6.20, 0.70), (6.65, 0.70), (6.78, 0.85), (6.78, 1.25), (6.65, 1.32), (6.20, 1.32)], 2.10))
     for s in (1, -1):
@@ -67,7 +67,7 @@ def tractor(m):
     m.add('cab', box_span('paint', 2.40, 4.00, 1.45, 2.12, -0.70, 0.70))
     m.add('cab', cab(2.55, 3.95, 2.17, 3.70, 0.70, door_side=-1))
     # hitch
-    m.add(p, cyl_between('steel', (2.25, 1.05, 0), (2.25, 1.75, 0), 0.16, 20))
+    m.add(p, cyl_between('steel', (2.25, 1.04, 0), (2.25, 1.76, 0), 0.16, 20))
     m.add(p, box_span('paint', 2.05, 2.45, 1.05, 1.15, -0.45, 0.45))
     m.add(p, box_span('paint', 2.05, 2.45, 1.65, 1.75, -0.45, 0.45))
     for s in (1, -1):  # steering cylinders
@@ -104,10 +104,10 @@ def bowl(m):
     m.add(p, box_between('paint', (-0.80, 0.12, 0), (-2.90, 0.50, 0), 2 * BW, 0.05))
     m.add(p, box_between('paint', (-2.90, 0.50, 0), (-3.35, 0.72, 0), 2 * BW, 0.05))
     # cutting edge with centre stinger
-    m.add(p, box_between('edge', (-0.62, 0.05, 0), (-0.86, 0.13, 0), 2 * BW, 0.06))
+    m.add(p, box_between('edge', (-0.62, 0.05, 0), (-0.86, 0.13, 0), 2 * BW - 0.01, 0.06))
     m.add(p, box_between('edge', (-0.50, 0.03, 0), (-0.66, 0.08, 0), 1.0, 0.05))
     for s in (1, -1):
-        m.add(p, extrude('edge', [(-0.55, 0.20), (-0.55, 0.62), (-0.80, 0.10), (-0.66, 0.06)], 0.08).move(z=s * (BW + 0.04)))
+        m.add(p, extrude('edge', [(-0.545, 0.20), (-0.545, 0.62), (-0.80, 0.10), (-0.66, 0.06)], 0.08).move(z=s * (BW + 0.04)))
     # apron and its arms/cylinders
     apron = [(-0.62, 0.30), (-0.36, 0.62), (-0.20, 1.10), (-0.20, 1.72), (-0.36, 2.28)]
     m.add('apron', extrude('paint', _shell(apron, -0.04), 2 * BW - 0.06))

@@ -39,7 +39,7 @@ def undercarriage(m):
 def body(m):
     p = 'body'
     m.add(p, box_span('paint_dark', -1.38, 0.82, 0.32, 0.95, -0.58, 0.58))
-    m.add(p, box_span('counterweight', 0.78, 0.86, 0.32, 0.70, -0.55, 0.55))  # front bumper
+    m.add(p, box_span('counterweight', 0.78, 0.86, 0.33, 0.70, -0.55, 0.55))  # front bumper
     for s in (1, -1):
         # fenders over the tracks
         m.add(p, box_span('paint', -1.42, 0.86, 0.93, 0.97, s * 0.56, s * 0.99))
@@ -51,15 +51,15 @@ def body(m):
         m.add(p, box('lens_red', 0.02, 0.10, 0.07, (-1.43, 1.50, s * 0.57)))
         m.add(p, lamp((-1.48, 1.68, s * 0.57), -1, 0.7))
     # engine compartment and rear door
-    m.add(p, box_span('paint', -1.40, -0.42, 0.95, 1.38, -0.51, 0.51))
+    m.add(p, box_span('paint', -1.40, -0.49, 0.95, 1.38, -0.51, 0.51))
     m.add(p, box_span('paint', -1.44, -1.40, 0.36, 1.36, -0.50, 0.50))
     m.add(p, box_span('grille', -1.45, -1.43, 0.95, 1.30, -0.40, 0.40))
     y = 1.0
     while y < 1.28:
-        m.add(p, box_span('paint_dark', -1.46, -1.44, y, y + 0.018, -0.40, 0.40))
+        m.add(p, box_span('paint_dark', -1.46, -1.44, y, y + 0.018, -0.39, 0.39))
         y += 0.04
     m.add(p, box_span('steel_dark', -1.47, -1.44, 0.75, 0.80, -0.12, 0.12))  # door handle
-    m.add(p, box_span('steel_dark', -1.46, -1.40, 0.36, 0.48, -0.20, 0.20))  # tie-down / hitch
+    m.add(p, box_span('steel_dark', -1.47, -1.43, 0.37, 0.48, -0.20, 0.20))  # tie-down / hitch
     m.add(p, box_span('grille', -1.20, -0.60, 1.38, 1.385, -0.35, 0.35))
     m.add(p, cyl_between('grille', (-1.05, 1.38, 0.32), (-1.05, 1.55, 0.32), 0.035, 12))
     # cab

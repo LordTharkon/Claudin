@@ -11,7 +11,7 @@ fender bulges); glass and trim are flush panels on those surfaces.
 """
 import math
 
-from meshkit import (MATERIALS, Model, box_between, box_span, cyl_between, cylinder,
+from meshkit import (MATERIALS, Geo, Model, box_between, norm, box_span, cyl_between, cylinder,
                      extrude, lathe, save, sphere)
 from bodykit import fillet, loft, panel, rbox, ring_at, section, smin, smoothstep, warp
 from vehicle_parts import place_wheel, rim, tyre
@@ -19,12 +19,12 @@ from vehicle_parts import place_wheel, rim, tyre
 LIGHT = dict(name='Pickup Truck', folder='pickup-truck', file='pickup_truck',
              wb=3.68, foh=0.86, roh=1.08, width=2.03, bed=1.68,
              tyre_r=0.41, tyre_w=0.275, bead=0.2286, track=1.73,
-             rocker=0.50, belt=1.30, hood=1.20, roof=1.94, hood_len=1.62, rake=0.85,
+             rocker=0.50, belt=1.30, hood=1.20, roof=1.94, hood_len=1.57, rake=0.85,
              paint='car_blue', dually=False)
 DUALLY = dict(name='Dually Pickup Truck', folder='dually-pickup-truck', file='dually_pickup_truck',
               wb=4.29, foh=0.92, roh=1.22, width=2.03, rear_width=2.44, bed=2.44,
               tyre_r=0.395, tyre_w=0.245, bead=0.216, track=1.75, dual_c=0.87, dual_gap=0.30,
-              rocker=0.56, belt=1.40, hood=1.33, roof=2.02, hood_len=1.70, rake=0.80,
+              rocker=0.56, belt=1.40, hood=1.33, roof=2.02, hood_len=1.65, rake=0.80,
               paint='car_white', dually=True)
 
 
@@ -41,7 +41,7 @@ class Body:
         self.xF, self.xR = c['wb'] / 2, -c['wb'] / 2
         self.xf, self.xr = self.xF + c['foh'], self.xR - c['roh']
         self.xbf = self.xr + c['bed']
-        self.xcb = self.xbf - 0.06
+        self.xcb = self.xbf + 0.05
         self.xws = self.xf - c['hood_len']
         self.xwt = self.xws - c['rake']
         self.rk, self.belt, self.hf, self.roof = c['rocker'], c['belt'], c['hood'], c['roof']
@@ -157,7 +157,7 @@ def build(c):
 
     # ------------------------------------------------------------ greenhouse
     gx = []
-    x = xcb
+    x = xcb + 0.003
     while x < xws:
         gx.append(x)
         x += 0.025 if x > xwt - 0.2 else 0.05
@@ -165,15 +165,22 @@ def build(c):
     m.add('body', loft(P, [ring_at(x, b.g_section(x)) for x in gx], cap0=True))
 
     # windshield
-    ws = []
-    n = 24
+    # a strip that follows the windshield's curve into the roof, with rounded corners
+    xa, xz, n, rc = xws - 0.05, xwt + 0.05, 40, 0.05
+    wpos, wnrm, widx = [], [], []
     for i in range(n + 1):
-        x = xws - 0.03 + (xwt + 0.05 - (xws - 0.03)) * i / n
-        yt = b.g_top(x)
-        ws.append((x, b.g_side(yt - b.g_rs(x)) - b.g_rs(x) - 0.035))
-    poly = fillet(ws + [(x, -z) for x, z in reversed(ws)], 0.05)
-    slope = (b.roof - belt) / (xws - xwt)
-    m.add('glass', panel('glass_tint', poly, lambda u, v: (u, b.g_top(u) + 0.006, v), (slope, 1, 0)))
+        x = xa + (xz - xa) * i / n
+        e = min(x - xz, xa - x)
+        inset = rc - math.sqrt(max(0.0, rc * rc - (rc - e) ** 2)) if e < rc else 0.0
+        zl = b.g_side(b.g_top(x) - b.g_rs(x)) - b.g_rs(x) - 0.045 - inset
+        dydx = (b.g_top(x + 0.002) - b.g_top(x - 0.002)) / 0.004
+        nn = (-dydx, 1.0, 0.0)
+        wpos += [(x, b.g_top(x) + 0.008, -zl), (x, b.g_top(x) + 0.008, zl)]
+        wnrm += [nn, nn]
+        if i:
+            k = 2 * i
+            widx += [(k - 2, k - 1, k + 1), (k - 2, k + 1, k)]
+    m.add('glass', Geo('glass_tint', wpos, [norm(v) for v in wnrm], widx))
 
     # side glass split by a black B-pillar
     yw_b = belt + 0.06
@@ -195,7 +202,7 @@ def build(c):
         m.add('glass', panel('glass_tint', window(x_end, xb - 0.05), on_side, nrm))
         m.add('body', panel('trim_black', [(xb - 0.05, yw_b - 0.015), (xb + 0.05, yw_b - 0.015),
                                            (xb + 0.05, ywt(xb) + 0.02), (xb - 0.05, ywt(xb) + 0.02)],
-                            lambda u, v, s=s: (u, v, s * (b.g_side(v) + 0.003)), nrm))
+                            lambda u, v, s=s: (u, v, s * (b.g_side(v) + 0.0045)), nrm))
         # window-line trim
         m.add('body', panel(trim, [(x_end - 0.02, yw_b - 0.025), (x_front + 0.03, yw_b - 0.025),
                                    (x_front + 0.03, yw_b - 0.008), (x_end - 0.02, yw_b - 0.008)],
@@ -204,7 +211,7 @@ def build(c):
     zr = lambda y: b.g_side(y) - 0.15
     rg = fillet([(-zr(belt + 0.08), belt + 0.08), (zr(belt + 0.08), belt + 0.08),
                  (zr(roof - 0.13), roof - 0.13), (-zr(roof - 0.13), roof - 0.13)], 0.06)
-    m.add('glass', panel('glass_tint', rg, lambda u, v: (xcb - 0.004, v, u), (-1, 0, 0)))
+    m.add('glass', panel('glass_tint', rg, lambda u, v: (xcb - 0.002, v, u), (-1, 0, 0)))
     m.add('body', rbox('lens_red', 0.03, 0.035, 0.30, 0.012, (xcb - 0.01, roof - 0.085, 0)))
 
     # ------------------------------------------------------------ bed walls (lofted U-section)
@@ -252,7 +259,7 @@ def build(c):
     m.add('bed', right_wall, [g.mirror_z() for g in right_wall])
 
     # bed floor, front wall, wheelhouses, tailgate
-    m.add('bed', box_span('trim_black', xr + 0.06, xbf, floor_y - 0.03, floor_y, -z_in, z_in))
+    m.add('bed', box_span('trim_black', xr + 0.06, xbf - 0.03, floor_y - 0.03, floor_y, -z_in, z_in))
     x = xr + 0.15
     while x < xbf - 0.05:
         m.add('bed', box_span('trim_black', x - 0.03, x + 0.03, floor_y, floor_y + 0.012, -z_in + 0.01, z_in - 0.01))
@@ -270,8 +277,9 @@ def build(c):
 
     # ------------------------------------------------------------ wheel-arch liners and lips
     for axle, width in ((xF, hw), (xR, rw)):
-        arc_o = [(axle + Ra * math.cos(a), wy + Ra * math.sin(a)) for a in (a0 + (math.pi - 2 * a0) * i / 24 for i in range(25))]
-        arc_i = [(axle + (Ra + 0.025) * math.cos(a), wy + (Ra + 0.025) * math.sin(a)) for a in (math.pi - a0 - (math.pi - 2 * a0) * i / 24 for i in range(25))]
+        e = a0 + 0.03  # stop just short of the sill so the liner ends are not flush with it
+        arc_o = [(axle + (Ra - 0.01) * math.cos(a), wy + (Ra - 0.01) * math.sin(a)) for a in (e + (math.pi - 2 * e) * i / 24 for i in range(25))]
+        arc_i = [(axle + (Ra + 0.025) * math.cos(a), wy + (Ra + 0.025) * math.sin(a)) for a in (math.pi - e - (math.pi - 2 * e) * i / 24 for i in range(25))]
         m.add('body', extrude('trim_black', arc_o + arc_i, 2 * width - 0.04))
         for s in (1, -1):
             zl = b.half_width(axle) + (pod(axle) if axle == xR else 0) - 0.02
@@ -368,8 +376,8 @@ def build(c):
     # ------------------------------------------------------------ rear
     for s in (1, -1):
         zt_ = b.side_fn(xr + 0.01)(belt - 0.2)
-        m.add('rear', rbox('lens_red', 0.035, 0.40, 0.11, 0.015, (xr + 0.002, belt - 0.24, s * (zt_ - 0.055))))
-        m.add('rear', rbox('lens', 0.037, 0.06, 0.08, 0.01, (xr + 0.001, belt - 0.30, s * (zt_ - 0.055))))
+        m.add('rear', rbox('lens_red', 0.035, 0.40, 0.11, 0.015, (xr + 0.002, belt - 0.24, s * (zt_ - 0.058))))
+        m.add('rear', rbox('lens', 0.037, 0.06, 0.08, 0.01, (xr - 0.001, belt - 0.30, s * (zt_ - 0.058))))
     rb_mat = 'chrome' if chrome else 'trim_black'
     m.add('rear', warp(rbox(rb_mat, 0.20, 0.20, 2 * hw - 0.04, 0.05, (xr - 0.05, rk, 0)),
                        lambda p: (p[0] + 0.05 * (p[2] / hw) ** 4, p[1], p[2])))

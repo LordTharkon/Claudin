@@ -48,10 +48,10 @@ def wheel():
     g.append(lathe('paint_dark', [(0, 0.06), (0.21, 0.06), (0.21, 0.16), (0.16, 0.22), (0.0, 0.22)], 32))
     for k in range(18):
         a = 2 * math.pi * k / 18
-        g.append(cylinder('steel', 0.017, 0.05, 6).at((0.18 * math.cos(a), 0.085, 0.18 * math.sin(a))))
+        g.append(cylinder('steel', 0.017, 0.05, 6).at((0.18 * math.cos(a), 0.09, 0.18 * math.sin(a))))
     for k in range(12):
         a = 2 * math.pi * (k + 0.5) / 12
-        g.append(cylinder('grille', 0.04, 0.002, 12).at((0.245 * math.cos(a), 0.061, 0.245 * math.sin(a))))
+        g.append(cylinder('grille', 0.04, 0.002, 12).at((0.245 * math.cos(a), 0.0615, 0.245 * math.sin(a))))
     return g
 
 
@@ -125,7 +125,7 @@ def rear_frame(m):
     m.add(p, box_span('grille', -3.63, -3.60, 1.50, 2.36, -0.64, 0.64))
     y = 1.55
     while y < 2.34:
-        m.add(p, box('paint_dark', 0.05, 0.025, 1.28, (-3.64, y, 0)).rotate('z', 20, (-3.64, y, 0)))
+        m.add(p, box('paint_dark', 0.05, 0.025, 1.26, (-3.64, y, 0)).rotate('z', 20, (-3.64, y, 0)))
         y += 0.065
     # counterweight / rear bumper with lights and hitch
     cw = [(-3.50, 0.62), (-3.50, 1.42), (-3.82, 1.42), (-3.95, 1.25), (-3.95, 0.80), (-3.80, 0.62)]
@@ -146,7 +146,7 @@ def rear_frame(m):
         m.add(p, box_span('grille', x - 0.06, x + 0.06, y - 0.015, y + 0.015, -1.54, -1.21))
     for s in (1, -1):
         m.add(p, handrail([(-0.40, 2.95, s * 1.58), (-2.85, 2.95, s * 1.58)], post_to=1.97))
-        m.add(p, cyl_between('paint', (-1.60, 2.55, s * 1.58), (-1.60, 1.97, s * 1.58), 0.019, 10))
+        m.add(p, cyl_between('paint', (-1.60, 2.55, s * 1.58), (-1.60, 1.95, s * 1.58), 0.019, 10))
     m.add(p, handrail([(-0.45, 1.97, -1.58), (-0.45, 2.95, -1.58)]))
 
     # operator cab

@@ -50,8 +50,8 @@ def chassis(m):
     m.add(p, extrude('paint', [(0.45, 1.70), (1.95, 1.46), (1.95, 1.50), (0.45, 1.74)], 0.62))  # crown
     m.add(p, box_span('grille', 2.11, 2.14, 0.98, 1.34, -0.32, 0.32))
     y = 1.02
-    while y < 1.33:
-        m.add(p, box_span('paint_dark', 2.13, 2.15, y, y + 0.02, -0.32, 0.32))
+    while y < 1.30:
+        m.add(p, box_span('paint_dark', 2.13, 2.15, y, y + 0.02, -0.31, 0.31))
         y += 0.05
     for s in (1, -1):
         m.add(p, box_span('paint_dark', 1.0, 1.01, 0.9, 1.55, s * 0.399, s * 0.405))  # side panel seam
@@ -75,7 +75,7 @@ def loader(m):
     A, B, C, D = (0.52, 1.25), (1.35, 1.68), (2.45, 1.18), (2.80, 0.52)
     for s in (1, -1):
         z = s * 0.60
-        m.add(p, box_span('paint', 0.42, 0.64, 0.85, 1.36, s * 0.44, s * 0.66))  # tower
+        m.add(p, box_span('paint', 0.42, 0.64, 0.85, 1.36, s * 0.44, s * 0.65))  # tower
         for a, b in ((A, B), (B, C), (C, D)):
             m.add(p, box_between('paint', (a[0], a[1], z), (b[0], b[1], z), 0.10, 0.20, (0, 0, 1) if False else (0, 1, 0)))
         for q in (A, B, C, D):

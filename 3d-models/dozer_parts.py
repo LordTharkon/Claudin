@@ -31,7 +31,7 @@ def blade(xb, H, wc, ww=0.0, wing_deg=0.0, curve=0.28, lean=0.12, thick=0.045,
 
     moldboard = [(front(t)[0], front(t)[1]) for t in ts] + \
                 [(front(t)[0] - thick, front(t)[1]) for t in reversed(ts)]
-    edge_poly = band(0.0, 0.19, fwd=0.03, aft=0.0)
+    edge_poly = band(0.0, 0.19, fwd=0.03, aft=-0.001)
     endbit_poly = band(0.0, 0.16, fwd=0.04, aft=0.0)
     beam_lo, beam_hi = rib(0.04, 0.30), rib(0.76, 0.95)
     lip_poly = band(0.955, 1.0, fwd=0.06, aft=thick + 0.04)
@@ -68,12 +68,12 @@ def blade(xb, H, wc, ww=0.0, wing_deg=0.0, curve=0.28, lean=0.12, thick=0.045,
         wing = section(ww)
         wing.append(extrude(mat, rib(0.03, 0.97), 0.035).move(z=ww - 0.04))
         wing.append(extrude(mat, endplate, 0.03).move(z=ww + 0.015))
-        wing.append(endbit(0.32).move(z=ww - 0.16))
+        wing.append(endbit(0.32).move(z=ww - 0.165))
         wing = [g.transform(shear).move(z=wc / 2) for g in wing]
         out += wing + [g.mirror_z() for g in wing]
     else:
         tip = [extrude(mat, endplate, 0.03).move(z=wc / 2 + 0.015),
-               endbit(0.32).move(z=wc / 2 - 0.16)]
+               endbit(0.32).move(z=wc / 2 - 0.165)]
         out += tip + [g.mirror_z() for g in tip]
     return out
 
@@ -104,7 +104,7 @@ def cab(x0, x1, y0, y1, hw, sill=0.40, mat='paint', door_side=1):
     """ROPS operator cab. x0 rear, x1 front, floor y0, roof underside y1, half-width hw."""
     out = []
     p = 0.09  # ROPS post size
-    out.append(box_span('paint_dark', x0, x1, y0, y0 + 0.06, -hw, hw))  # floor plate
+    out.append(box_span('paint_dark', x0 + 0.03, x1 - 0.03, y0 + 0.004, y0 + 0.06, -hw + 0.03, hw - 0.03))  # floor plate
     ys = y0 + sill
     # lower body panels
     out.append(box_span(mat, x0, x0 + 0.03, y0, ys, -hw, hw))
@@ -118,7 +118,7 @@ def cab(x0, x1, y0, y1, hw, sill=0.40, mat='paint', door_side=1):
     for s in (1, -1):
         out.append(box_span(mat, x0, x1, y1 - 0.08, y1, s * (hw - p), s * hw))
         # mid door pillar
-        out.append(box(mat, 0.06, y1 - ys, 0.06, ((x0 + x1) / 2 - 0.1, (ys + y1) / 2, s * (hw - 0.03))))
+        out.append(box(mat, 0.06, y1 - ys + 0.02, 0.06, ((x0 + x1) / 2 - 0.1, (ys + y1) / 2 - 0.01, s * (hw - 0.03))))
     out.append(box_span(mat, x0, x0 + p, y1 - 0.08, y1, -hw, hw))
     out.append(box_span(mat, x1 - p, x1, y1 - 0.08, y1, -hw, hw))
     # roof with overhang and drip rail
@@ -138,7 +138,7 @@ def cab(x0, x1, y0, y1, hw, sill=0.40, mat='paint', door_side=1):
     out.append(box_span('steel_dark', dx0 + 0.04, dx0 + 0.16, ys - 0.12, ys - 0.09, zd, zd + door_side * 0.03))
     # wipers
     out.append(box_between_wiper(x1, g0, hw))
-    out.append(box_span('rubber', x0 - 0.002, x0 + 0.02, g0 + 0.05, g0 + 0.07, -0.25, 0.25))
+    out.append(box_span('rubber', x0 + 0.001, x0 + 0.008, g0 + 0.05, g0 + 0.07, -0.25, 0.25))
     # grab handles beside door
     zz = door_side * (hw + 0.06)
     for px in (x1 + 0.02, dx0 - 0.08):
@@ -165,8 +165,9 @@ def cab(x0, x1, y0, y1, hw, sill=0.40, mat='paint', door_side=1):
     out.append(box('seat', 0.10, 0.62, 0.50, (sx - 0.26, y0 + 0.82, 0)).rotate('z', 10, (sx - 0.26, y0 + 0.5, 0)))
     out.append(box('seat', 0.08, 0.16, 0.30, (sx - 0.32, y0 + 1.22, 0)))
     for s in (1, -1):
-        out.append(box_span('paint_dark', sx - 0.30, sx + 0.35, y0 + 0.06, y0 + 0.62, s * 0.30, s * 0.46))
-        out.append(box_span('seat', sx - 0.2, sx + 0.25, y0 + 0.62, y0 + 0.67, s * 0.32, s * 0.44))
+        zc = min(0.46, hw - 0.06)
+        out.append(box_span('paint_dark', sx - 0.30, sx + 0.35, y0 + 0.06, y0 + 0.62, s * 0.30, s * zc))
+        out.append(box_span('seat', sx - 0.2, sx + 0.25, y0 + 0.62, y0 + 0.67, s * 0.32, s * (zc - 0.02)))
         top = (sx + 0.22, y0 + 0.67, s * 0.38)
         out.append(cyl_between('steel_dark', top, (top[0] + 0.02, top[1] + 0.14, top[2]), 0.012, 8))
         out.append(sphere('seat', 0.035, 10, 6).at((top[0] + 0.02, top[1] + 0.17, top[2])))
@@ -186,13 +187,13 @@ def handrail(points, r=0.019, post_to=None, mat='paint'):
     out = polyline_tube(mat, points, r)
     if post_to is not None:
         for x, y, z in points:
-            out.append(cyl_between(mat, (x, post_to, z), (x, y, z), r, 10))
+            out.append(cyl_between(mat, (x, post_to - 0.02, z), (x, y, z), r, 10))
     return out
 
 
 def exhaust(x, y0, y1, z, r=0.065):
     return [cylinder('paint_dark', r * 1.6, 0.05, 16).at((x, y0 + 0.025, z)),
-            cyl_between('grille', (x, y0, z), (x, y1, z), r, 18),
+            cyl_between('grille', (x, y0 + 0.01, z), (x, y1, z), r, 18),
             cylinder('steel_dark', r * 1.15, 0.12, 18).at((x, y1 - 0.15, z)),
             # angled rain-cap cut
             cyl_between('grille', (x, y1, z), (x - 0.04, y1 + 0.06, z), r, 18)]
@@ -201,5 +202,5 @@ def exhaust(x, y0, y1, z, r=0.065):
 def precleaner(x, y0, z, h=0.26):
     return [cyl_between('paint_dark', (x, y0, z), (x, y0 + h, z), 0.045, 14),
             cylinder('rubber', 0.13, 0.22, 20).at((x, y0 + h + 0.11, z)),
-            cylinder('glass', 0.125, 0.14, 20).at((x, y0 + h + 0.07, z)),
+            cylinder('glass', 0.125, 0.14, 20).at((x, y0 + h + 0.075, z)),
             cylinder('paint_dark', 0.14, 0.05, 20, r_top=0.08).at((x, y0 + h + 0.245, z))]

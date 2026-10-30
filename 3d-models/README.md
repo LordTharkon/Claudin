@@ -89,3 +89,5 @@ python3 3d-models/build_all.py
 * `vehicle_parts.py` — tyres (earthmover, industrial, all-terrain, highway), rims, rubber
   tracks, excavator and loader buckets, steering wheel
 * `build_*.py` — one script per machine (`build_pickup_trucks.py` writes both pickups)
+* `check_zfighting.py` — scans every model for z-fighting (coplanar, overlapping faces of
+  different materials) and exits non-zero if it finds any: `python3 3d-models/check_zfighting.py`
