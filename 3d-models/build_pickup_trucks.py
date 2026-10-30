@@ -16,12 +16,12 @@ from meshkit import (MATERIALS, Geo, Model, box_between, norm, box_span, cyl_bet
 from bodykit import fillet, loft, panel, rbox, ring_at, section, smin, smoothstep, warp
 from vehicle_parts import place_wheel, rim, tyre
 
-LIGHT = dict(name='Pickup Truck', folder='pickup-truck', file='pickup_truck',
+LIGHT = dict(name='Pickup Truck', folder='Construction/pickup-truck', file='pickup_truck',
              wb=3.68, foh=0.86, roh=1.08, width=2.03, bed=1.68,
              tyre_r=0.41, tyre_w=0.275, bead=0.2286, track=1.73,
              rocker=0.50, belt=1.30, hood=1.20, roof=1.94, hood_len=1.57, rake=0.85,
              paint='paint_blue', dually=False)
-DUALLY = dict(name='Dually Pickup Truck', folder='dually-pickup-truck', file='dually_pickup_truck',
+DUALLY = dict(name='Dually Pickup Truck', folder='Construction/dually-pickup-truck', file='dually_pickup_truck',
               wb=4.29, foh=0.92, roh=1.22, width=2.03, rear_width=2.44, bed=2.44,
               tyre_r=0.395, tyre_w=0.245, bead=0.216, track=1.75, dual_c=0.87, dual_gap=0.30,
               rocker=0.56, belt=1.40, hood=1.33, roof=2.02, hood_len=1.65, rake=0.80,

@@ -149,4 +149,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'articulated-dump-truck', 'articulated_dump_truck')
+    save(build(), 'Construction/articulated-dump-truck', 'articulated_dump_truck')

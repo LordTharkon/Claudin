@@ -170,4 +170,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'backhoe-loader', 'backhoe_loader')
+    save(build(), 'Construction/backhoe-loader', 'backhoe_loader')

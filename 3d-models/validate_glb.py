@@ -25,6 +25,8 @@ ALLOWED = {'paint_yellow', 'paint_yellow_dusty', 'paint_white', 'paint_red', 'pa
            'steel_dark', 'aluminum', 'chrome', 'wear_steel', 'track_steel', 'tyre_rubber', 'hose_rubber',
            'cable_rubber', 'rubber_trim', 'wire_rope', 'seat_fabric', 'glass', 'glass_tinted', 'lamp_lens',
            'lamp_amber', 'lamp_red', 'lamp_beacon'}
+# additions for site props, used only where nothing on the standard list fits
+ALLOWED |= {'timber', 'plywood', 'concrete', 'gravel', 'sand', 'woven_polypropylene', 'fabric_pink'}
 EXT_OK = {'KHR_texture_transform', 'KHR_materials_emissive_strength'}
 SUFFIXES = ('_steer', '_spin', '_tilt', '_rotate', '_lift', '_slide')
 TEX = 1024
@@ -172,7 +174,7 @@ def validate(path):
     if abs((lo[0] + hi[0]) / 2) > 1e-3 or abs((lo[2] + hi[2]) / 2) > 1e-3:
         E('origin not centred under the vehicle')
     if not (size[0] > size[2] * 0.9):
-        E('vehicle does not appear to face +X (length %.2f < width %.2f)' % (size[0], size[2]))
+        E('model does not appear to face +X (length %.2f < width %.2f)' % (size[0], size[2]))
     info.append('size L %.2f x W %.2f x H %.2f m' % (size[0], size[2], size[1]))
 
     # ---- materials / textures
@@ -206,10 +208,10 @@ def validate(path):
         png = binary[bv.get('byteOffset', 0):bv.get('byteOffset', 0) + 24]
         if png[:8] != b'\x89PNG\r\n\x1a\n':
             E('material "%s" image is not PNG data' % nm)
-        sig = json.dumps({k: v for k, v in m.items() if k != 'name'}, sort_keys=True).replace(
-            '"index": %d' % pbr['baseColorTexture']['index'], '')
+        import hashlib
+        img_bytes = binary[bv.get('byteOffset', 0):bv.get('byteOffset', 0) + bv['byteLength']]
         sig = json.dumps([pbr.get('metallicFactor'), pbr.get('roughnessFactor'), f, m.get('emissiveFactor'),
-                          m.get('alphaMode')]) + str(png)
+                          m.get('alphaMode'), m.get('doubleSided', False)]) + hashlib.sha1(img_bytes).hexdigest()
         if sig in seen:
             E('materials "%s" and "%s" are duplicates' % (seen[sig], nm))
         seen[sig] = nm
@@ -266,7 +268,7 @@ def main():
     here = os.path.dirname(os.path.abspath(__file__))
     filt = sys.argv[1] if len(sys.argv) > 1 else ''
     bad = 0
-    for path in sorted(glob.glob(os.path.join(here, '*', '*.glb'))):
+    for path in sorted(glob.glob(os.path.join(here, '**', '*.glb'), recursive=True)):
         if filt not in path:
             continue
         errs, info = validate(path)

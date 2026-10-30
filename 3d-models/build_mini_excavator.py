@@ -138,4 +138,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'mini-excavator', 'mini_excavator')
+    save(build(), 'Construction/mini-excavator', 'mini_excavator')

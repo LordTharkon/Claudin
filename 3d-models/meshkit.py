@@ -644,6 +644,19 @@ MATERIALS = {
     'lamp_amber':      {'color': (1.0, 0.55, 0.0), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.5, 0.25, 0.0)},
     'lamp_red':        {'color': (0.8, 0.02, 0.02), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.5, 0.0, 0.0)},
     'lamp_beacon':     {'color': (1.0, 0.45, 0.0), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.6, 0.25, 0.0)},
+    'paint_red':       {'color': (0.55, 0.08, 0.04), 'metallic': 0.15, 'roughness': 0.55},
+    'paint_orange':    {'color': (0.90, 0.30, 0.02), 'metallic': 0.1, 'roughness': 0.5},
+    'paint_green':     {'color': (0.04, 0.20, 0.07), 'metallic': 0.1, 'roughness': 0.5},
+    'paint_gray':      {'color': (0.42, 0.43, 0.44), 'metallic': 0.2, 'roughness': 0.5},
+    'cable_rubber':    {'color': (0.03, 0.03, 0.03), 'metallic': 0.0, 'roughness': 0.6},
+    # added for site props: nothing on the standard list fits these surfaces
+    'timber':          {'color': (0.50, 0.33, 0.17), 'metallic': 0.0, 'roughness': 0.85},
+    'plywood':         {'color': (0.66, 0.50, 0.30), 'metallic': 0.0, 'roughness': 0.8},
+    'concrete':        {'color': (0.46, 0.46, 0.44), 'metallic': 0.0, 'roughness': 0.95},
+    'gravel':          {'color': (0.17, 0.155, 0.135), 'metallic': 0.0, 'roughness': 1.0},
+    'sand':            {'color': (0.70, 0.56, 0.34), 'metallic': 0.0, 'roughness': 1.0},
+    'woven_polypropylene': {'color': (0.80, 0.78, 0.70), 'metallic': 0.0, 'roughness': 0.85},
+    'fabric_pink':     {'color': (1.0, 0.12, 0.45), 'metallic': 0.0, 'roughness': 0.7},
 }
 
 

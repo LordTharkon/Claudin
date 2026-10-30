@@ -22,6 +22,8 @@ BUILDERS = [
     ('build_mini_excavator', None), ('build_compact_track_loader', None),
     ('build_wheel_tractor_scraper', None), ('build_articulated_dump_truck', None),
     ('build_pickup_trucks', 'LIGHT'), ('build_pickup_trucks', 'DUALLY'),
+    ('build_site_cabins', 'MODELS'), ('build_site_equipment', 'MODELS'),
+    ('build_site_materials', 'MODELS'), ('build_site_structures', 'MODELS'),
 ]
 PLANE_TOL = 0.0008   # faces closer than this (m) are treated as coplanar
 MIN_AREA = 1e-5      # ignore overlaps smaller than 10 mm^2
@@ -138,9 +140,21 @@ def main():
     total = 0
     for mod, cfg in BUILDERS:
         m = importlib.import_module(mod)
-        model = m.build(getattr(m, cfg)) if cfg else m.build()
-        if filt.lower() not in model.name.lower():
-            continue
+        if cfg == 'MODELS':   # module builds several models: [(build_fn, folder, file), ...]
+            todo = [fn for fn, _, _ in m.MODELS]
+        else:
+            todo = [lambda: m.build(getattr(m, cfg)) if cfg else m.build()]
+        for fn in todo:
+            total += report(fn, filt, show_all)
+    print('total:', total)
+    return 1 if total else 0
+
+
+def report(fn, filt, show_all):
+    model = fn()
+    if filt.lower() not in model.name.lower():
+        return 0
+    if True:
         found = check(model)
         # collapse to one line per (pair, normal), keeping one sample location
         summary = defaultdict(lambda: [0.0, None])
@@ -156,9 +170,7 @@ def main():
               '' if show_all else '  (%d harmless same-material overlaps hidden)' % same))
         for (a, b, n), (area, c) in sorted(summary.items(), key=lambda kv: -kv[1][0]):
             print('   %6.0f cm2  %s/%s  vs  %s/%s  normal %s  near %s' % (area * 1e4, a[0], a[1], b[0], b[1], n, c))
-        total += len(summary)
-    print('total:', total)
-    return 1 if total else 0
+        return len(summary)
 
 
 if __name__ == '__main__':

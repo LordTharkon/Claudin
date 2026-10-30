@@ -113,4 +113,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'compact-track-loader', 'compact_track_loader')
+    save(build(), 'Construction/compact-track-loader', 'compact_track_loader')

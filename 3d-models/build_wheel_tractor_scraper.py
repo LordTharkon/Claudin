@@ -160,4 +160,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'wheel-tractor-scraper', 'wheel_tractor_scraper')
+    save(build(), 'Construction/wheel-tractor-scraper', 'wheel_tractor_scraper')
