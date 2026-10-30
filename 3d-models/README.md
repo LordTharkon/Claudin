@@ -85,6 +85,7 @@ python3 3d-models/build_all.py
 * `meshkit.py` — tiny mesh library (boxes, cylinders, lathe, extrusions, belt paths) with
   `.glb` and `.obj` writers
 * `dozer_parts.py` — shared assemblies (blade, cab, lamps, louvres, rails, exhaust)
+* `bodykit.py` — smooth bodywork: lofted cross-sections, rounded boxes, flush glass/trim panels
 * `vehicle_parts.py` — tyres (earthmover, industrial, all-terrain, highway), rims, rubber
   tracks, excavator and loader buckets, steering wheel
 * `build_*.py` — one script per machine (`build_pickup_trucks.py` writes both pickups)
