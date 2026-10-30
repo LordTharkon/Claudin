@@ -513,7 +513,7 @@ MATERIALS = {
     'steel_dark':  {'color': (0.10, 0.10, 0.10), 'metallic': 0.7, 'roughness': 0.7},
     'steel_worn':  {'color': (0.30, 0.29, 0.28), 'metallic': 0.8, 'roughness': 0.55},
     'edge':        {'color': (0.55, 0.55, 0.56), 'metallic': 0.9, 'roughness': 0.35},
-    'chrome':      {'color': (0.90, 0.90, 0.92), 'metallic': 1.0, 'roughness': 0.12},
+    'chrome':      {'color': (0.92, 0.92, 0.94), 'metallic': 0.7, 'roughness': 0.18},
     'rubber':      {'color': (0.025, 0.025, 0.025), 'metallic': 0.0, 'roughness': 0.9},
     'grille':      {'color': (0.03, 0.03, 0.03), 'metallic': 0.5, 'roughness': 0.6},
     'glass':       {'color': (0.25, 0.35, 0.40), 'metallic': 0.0, 'roughness': 0.05, 'alpha': 0.35},
@@ -521,4 +521,24 @@ MATERIALS = {
     'lens_red':    {'color': (0.8, 0.02, 0.02), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.5, 0.0, 0.0)},
     'beacon':      {'color': (1.0, 0.45, 0.0), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.6, 0.25, 0.0), 'alpha': 0.85},
     'seat':        {'color': (0.04, 0.04, 0.045), 'metallic': 0.0, 'roughness': 0.85},
+    'lens_amber':  {'color': (1.0, 0.55, 0.0), 'metallic': 0.0, 'roughness': 0.2, 'emissive': (0.5, 0.25, 0.0)},
+    'glass_tint':  {'color': (0.03, 0.04, 0.05), 'metallic': 0.2, 'roughness': 0.05, 'alpha': 0.92},
+    'trim_black':  {'color': (0.035, 0.035, 0.038), 'metallic': 0.0, 'roughness': 0.7},
+    'alloy':       {'color': (0.70, 0.71, 0.73), 'metallic': 0.6, 'roughness': 0.3},
+    'car_blue':    {'color': (0.02, 0.07, 0.20), 'metallic': 0.6, 'roughness': 0.25},
+    'car_white':   {'color': (0.86, 0.87, 0.88), 'metallic': 0.1, 'roughness': 0.3},
+    'counterweight': {'color': (0.12, 0.12, 0.13), 'metallic': 0.3, 'roughness': 0.6},
 }
+
+
+def save(model, folder, name, obj=False):
+    """Write <folder>/<name>.glb (and optionally .obj/.mtl) next to this file."""
+    import os
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), folder)
+    os.makedirs(out, exist_ok=True)
+    model.write_glb(os.path.join(out, name + '.glb'))
+    if obj:
+        model.write_obj(os.path.join(out, name + '.obj'), name + '.mtl')
+    lo, hi = model.bounds()
+    print('%s: L %.2f  W %.2f  H %.2f m  | %d verts, %d tris' %
+          (model.name, hi[0] - lo[0], hi[2] - lo[2], hi[1] - lo[1], *model.stats()))
