@@ -9,11 +9,13 @@ from meshkit import (belt_path, box, cyl_between, cylinder, extrude, from_column
 
 # ------------------------------------------------------------------ tyres ---
 
-def tyre(r, w, bead_r, tread='chevron', depth=None, segs=64, lugs=None):
+def tyre(r, w, bead_r, tread='chevron', depth=None, segs=64, lugs=None, lean_crown=False):
     """Tyre of outside radius r and width w on a rim of bead radius bead_r.
 
     tread: 'chevron' (earthmover L-3/L-4 bar lugs), 'r4' (industrial lugs),
     'at' (all-terrain blocks), 'hwy' (ribbed light-truck highway tread).
+    lean_crown: for 'hwy', leave out the crown points that lie on a straight line between
+    their neighbours (same surface, fewer triangles).
     """
     d = depth if depth is not None else {'chevron': 0.06, 'r4': 0.045, 'at': 0.016, 'hwy': 0.012}[tread] * (r / 0.9 if tread in ('chevron', 'r4') else 1)
     base = r - d
@@ -27,7 +29,8 @@ def tyre(r, w, bead_r, tread='chevron', depth=None, segs=64, lugs=None):
         # carve circumferential grooves into the crown
         crown = []
         for k, y in enumerate([-hw * 0.64 + i * (hw * 1.28) / 10 for i in range(11)]):
-            crown.append((r - (d if k in (3, 7) else 0), y))
+            if not (lean_crown and k in (1, 5, 9)):
+                crown.append((r - (d if k in (3, 7) else 0), y))
         prof = side[:-1] + [(base, -hw * 0.64)] + crown + [(base, hw * 0.64)] + [(rr, -y) for rr, y in reversed(side[:-1])]
     prof.append(prof[0])
     out = [lathe('tyre_rubber', prof, segs)]
@@ -67,47 +70,49 @@ def tyre(r, w, bead_r, tread='chevron', depth=None, segs=64, lugs=None):
 
 # ------------------------------------------------------------------- rims ---
 
-def rim(bead_r, w, style='otr', mat='paint_yellow', nuts=10, spokes=6):
+def rim(bead_r, w, style='otr', mat='paint_yellow', nuts=10, spokes=6, segs=48):
     """Rim of bead radius bead_r for a tyre of width w (rim width ~0.8 w).
 
     style: 'otr' (earthmover), 'steel' (truck/tractor disc), 'aluminum' (car spokes),
     'dually_front' (offset disc with hub pilot), 'deep' (deep-dish rear dual).
+    segs: segments round the rim barrel; the disc, hub and bolt holes scale with it.
     """
+    S = lambda k: max(6, round(k * segs / 48))
     hr = w * 0.40
     fl = max(0.02, bead_r * 0.11)
     t = max(0.012, bead_r * 0.04)
     out = [lathe(mat, [(bead_r - t, -hr - 0.01), (bead_r + fl, -hr - 0.01), (bead_r + fl, -hr + t),
                        (bead_r, -hr + 2 * t), (bead_r, hr - 2 * t), (bead_r + fl, hr - t),
-                       (bead_r + fl, hr + 0.01), (bead_r - t, hr + 0.01), (bead_r - t, -hr - 0.01)], 48)]
+                       (bead_r + fl, hr + 0.01), (bead_r - t, hr + 0.01), (bead_r - t, -hr - 0.01)], segs)]
     hub_r = bead_r * 0.42
     nut_r = bead_r * 0.30
     if style == 'aluminum':
         face = hr * 0.55
-        out.append(lathe('steel_dark', [(0, face - 0.06), (bead_r - t, face - 0.06), (bead_r - t, face - 0.05), (0, face - 0.05)], 40))
-        out.append(lathe(mat, [(0, face - 0.03), (hub_r, face - 0.03), (hub_r, face + 0.01), (hub_r * 0.6, face + 0.03), (0, face + 0.03)], 32))
+        out.append(lathe('steel_dark', [(0, face - 0.06), (bead_r - t, face - 0.06), (bead_r - t, face - 0.05), (0, face - 0.05)], S(40)))
+        out.append(lathe(mat, [(0, face - 0.03), (hub_r, face - 0.03), (hub_r, face + 0.01), (hub_r * 0.6, face + 0.03), (0, face + 0.03)], S(32)))
         for k in range(spokes):
             a = 360 * k / spokes
             for da in (-7, 7):
                 sp = extrude(mat, [(hub_r * 0.8, -0.022), (bead_r - t, -0.032), (bead_r - t, 0.032), (hub_r * 0.8, 0.022)], 0.035)
                 out.append(sp.rotate('x', 90).rotate('y', -(a + da)).move(y=face - 0.005))
-        out.append(lathe('chrome', [(0, face + 0.03), (hub_r * 0.45, face + 0.03), (hub_r * 0.4, face + 0.045), (0, face + 0.05)], 24))
+        out.append(lathe('chrome', [(0, face + 0.03), (hub_r * 0.45, face + 0.03), (hub_r * 0.4, face + 0.045), (0, face + 0.05)], S(24)))
         nut_y = face + 0.02
     else:
         face = {'otr': 0.05 * w, 'steel': 0.12 * w, 'dually_front': hr + 0.04, 'deep': -hr + 0.02}[style]
-        out.append(lathe(mat, [(0, face - t), (bead_r - t, face - t), (bead_r - t, face), (0, face)], 40))
+        out.append(lathe(mat, [(0, face - t), (bead_r - t, face - t), (bead_r - t, face), (0, face)], S(40)))
         if style == 'deep':
             # cone from the disc out to the outer bead seat
-            out.append(lathe(mat, [(hub_r * 1.5, face), (bead_r - t, hr - 2 * t), (bead_r - t * 2, hr - 2 * t), (hub_r * 1.5 - t, face)], 40))
+            out.append(lathe(mat, [(hub_r * 1.5, face), (bead_r - t, hr - 2 * t), (bead_r - t * 2, hr - 2 * t), (hub_r * 1.5 - t, face)], S(40)))
         if style == 'dually_front':
-            out.append(lathe(mat, [(bead_r - t, hr - 2 * t), (hub_r * 1.6, face - t), (hub_r * 1.6 - t, face - t), (bead_r - 2 * t, hr - 2 * t)], 40))
+            out.append(lathe(mat, [(bead_r - t, hr - 2 * t), (hub_r * 1.6, face - t), (hub_r * 1.6 - t, face - t), (bead_r - 2 * t, hr - 2 * t)], S(40)))
         holes = 8 if style in ('steel', 'deep', 'dually_front') else 12
         for k in range(holes):
             a = 2 * math.pi * (k + 0.5) / holes
             rr = (hub_r + bead_r) / 2
-            out.append(cylinder('steel_dark', bead_r * 0.11, 0.002, 12).at((rr * math.cos(a), face + 0.001, rr * math.sin(a))))
+            out.append(cylinder('steel_dark', bead_r * 0.11, 0.002, S(12)).at((rr * math.cos(a), face + 0.001, rr * math.sin(a))))
         cap = 'chrome' if style in ('dually_front', 'deep') else 'chassis_black'
         hub_h = 0.10 if style == 'dually_front' else 0.4 * hr
-        out.append(lathe(cap, [(0, face), (hub_r * 0.85, face), (hub_r * 0.8, face + hub_h * 0.7), (hub_r * 0.5, face + hub_h), (0, face + hub_h)], 32))
+        out.append(lathe(cap, [(0, face), (hub_r * 0.85, face), (hub_r * 0.8, face + hub_h * 0.7), (hub_r * 0.5, face + hub_h), (0, face + hub_h)], S(32)))
         nut_y = face + 0.012
     for k in range(nuts):
         a = 2 * math.pi * k / nuts

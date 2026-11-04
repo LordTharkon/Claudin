@@ -13,7 +13,8 @@ import math
 
 from meshkit import (MATERIALS, Geo, Model, box_between, norm, box_span, cyl_between, cylinder,
                      extrude, lathe, save, sphere)
-from bodykit import fillet, loft, panel, rbox, ring_at, section, smin, smoothstep, warp
+from bodykit import fillet, loft, panel, ring_at, section, smin, smoothstep, warp
+from bodykit import rbox as _rbox
 from vehicle_parts import place_wheel, rim, tyre
 
 LIGHT = dict(name='Pickup Truck', folder='Construction/pickup-truck', file='pickup_truck',
@@ -26,6 +27,44 @@ DUALLY = dict(name='Dually Pickup Truck', folder='Construction/dually-pickup-tru
               tyre_r=0.395, tyre_w=0.245, bead=0.216, track=1.75, dual_c=0.87, dual_gap=0.30,
               rocker=0.56, belt=1.40, hood=1.33, roof=2.02, hood_len=1.65, rake=0.80,
               paint='paint_white', dually=True)
+
+
+TYRE_SEGS, RIM_SEGS = 36, 32   # 1.5 mm chord error at these sizes; smooth normals hide the facets
+HWY_LUGS = 40                   # shoulder blocks round the highway tyre (6 cm pitch)
+SPARE_SEGS = 32                 # the under-bed spare is only seen from low angles
+
+
+def rbox(mat, sx, sy, sz, r, center=(0, 0, 0), n=None):
+    """bodykit.rbox with as many corner segments as its radius needs (1 mm chord error,
+    1 to 4 segments per quarter round): small trim and lamp boxes get 1 or 2."""
+    if n is None:
+        n = max(1, min(4, round(math.pi / 4 / math.acos(max(-1.0, 1 - 0.001 / max(r, 1e-4))))))
+    return _rbox(mat, sx, sy, sz, r, center, n)
+
+
+def in_front_of(geos, x_cut):
+    """Drop the triangles lying wholly behind the plane x = x_cut (buried in a panel)."""
+    out = []
+    for g in geos:
+        idx = [t for t in g.idx if max(g.pos[i][0] for i in t) > x_cut + 1e-6]
+        out.append(Geo(g.mat, g.pos, g.nrm, idx, fix=False))
+    return out
+
+
+def stations(spans, keys=(), skip=None):
+    """Loft stations along x. `spans` is a list of (x0, x1, step): stations about `step` apart
+    from x0 to x1. Key stations are added; regular stations strictly inside `skip` = (a, b)
+    (a span the keys already cover) or within 1 cm of a key are left out, so no sliver rings."""
+    lo, hi = min(sp[0] for sp in spans), max(sp[1] for sp in spans)
+    xs = set()
+    for x0, x1, step in spans:
+        n = max(1, math.ceil((x1 - x0) / step - 1e-9))
+        xs |= {round(x0 + (x1 - x0) * i / n, 5) for i in range(n + 1)}
+    if skip:
+        xs = {x for x in xs if not skip[0] < x < skip[1]}
+    ks = {round(k, 5) for k in keys if lo <= k <= hi}
+    xs = {x for x in xs if all(abs(x - k) >= 0.01 for k in ks)}
+    return sorted(xs | ks)
 
 
 def bump(t):
@@ -126,7 +165,7 @@ class Body:
     def g_section(self, x):
         yt, cr = self.g_top(x), self.g_crown(x)
         ze = self.g_side(yt)
-        return section(self.g_yb, lambda z: yt + cr * (1 - (z / ze) ** 2), self.g_side, 0.0, self.g_rs(x), nb=2, nc=6, ns=8, nt=12)
+        return section(self.g_yb, lambda z: yt + cr * (1 - (z / ze) ** 2), self.g_side, 0.0, self.g_rs(x), nb=2, nc=6, ns=2, nt=8)   # straight sides
 
 
 def build(c):
@@ -147,28 +186,23 @@ def build(c):
     trim = 'chrome' if chrome else 'plastic_black'
 
     # ------------------------------------------------------------ lower body (cab + front clip)
-    xs = set()
-    x = xcb
-    while x < xf - 0.09:
-        xs.add(round(x, 4))
-        x += 0.04
+    # 10 cm apart on the straight runs, with stations at every kink (windshield base, hood
+    # dome edges, nose taper), round the wheel arch and through the nose round-over
     a0 = math.asin((rk - wy) / Ra)
-    for i in range(29):
-        a = a0 + (math.pi - 2 * a0) * i / 28
-        xs.add(round(xF + Ra * math.cos(a), 5))
-    for i in range(11):
-        xs.add(round(xf - 0.09 + 0.09 * math.sin(math.pi / 2 * i / 10), 5))
-    xs.add(round(xws, 4))
-    xs = sorted(v for v in xs if xcb <= v <= xf)
+    keys = [xws, xws + 0.12, xws + 0.24, xf - 0.44, xf - 0.32, xf - 0.5, xF - b.dxA, xF + b.dxA]
+    keys += [xF + Ra * math.cos(a0 + (math.pi - 2 * a0) * i / 18) for i in range(19)]
+    keys += [xf - 0.09 + 0.09 * math.sin(math.pi / 2 * i / 6) for i in range(7)]
+    # the cab section is constant back from the front fender flare, so only the front clip
+    # needs the 10 cm spacing
+    x_flare = xF - 0.8
+    xs = stations([(xcb, x_flare, 0.5), (x_flare, xf, 0.10)], keys + [xcb, xf], (xF - b.dxA, xF + b.dxA))
     m.add('body', loft(P, [ring_at(x, b.lower_section(x)) for x in xs], cap0=True, cap1=True))
 
     # ------------------------------------------------------------ greenhouse
-    gx = []
-    x = xcb + 0.003
-    while x < xws:
-        gx.append(x)
-        x += 0.025 if x > xwt - 0.2 else 0.05
-    gx.append(xws)
+    # dense only where the roof rounds into the windshield and where it drops at the back;
+    # the roof is a constant section between the two
+    gx = stations([(xcb + 0.003, xcb + 0.08, 0.02), (xcb + 0.08, xwt - 0.30, 0.5),
+                   (xwt - 0.30, xwt + 0.15, 0.025), (xwt + 0.15, xws, 0.10)])
     m.add('body', loft(P, [ring_at(x, b.g_section(x)) for x in gx], cap0=True))
 
     # windshield
@@ -237,7 +271,7 @@ def build(c):
         yb = b.bottom(x, xR)
         side = b.side_fn(x, pod=pod(x))
         rr = 0.03
-        zo_top = side(belt - rr)
+        zo_top = max(side(belt - rr), z_in + 2 * rr + 0.002)   # keep the rail top from folding over
         # inner wall, rounded rail cap, outer side down to the sill / wheel arch
         pts = [(z_in, yb), (z_in, belt - rr)] + [(z_in + rr * (1 - math.cos(a)), belt - rr + rr * math.sin(a))
                                                   for a in (math.pi / 2 * i / 4 for i in range(1, 5))]
@@ -249,19 +283,13 @@ def build(c):
         pts += [(zb - 0.02, yb), ((zb + z_in) / 2, yb)]
         return [(x, y, z) for z, y in pts]
 
-    bxs = set()
-    x = xr
-    while x < xbf:
-        bxs.add(round(x, 4))
-        x += 0.04
-    for i in range(29):
-        a = a0 + (math.pi - 2 * a0) * i / 28
-        bxs.add(round(xR + Ra * math.cos(a), 5))
+    # 12 cm apart through the rear fender flare, round the arch and through the dually pod
+    # transitions; the bed is a constant section beyond them
+    keys = [xR + Ra * math.cos(a0 + (math.pi - 2 * a0) * i / 18) for i in range(19)] + [xR - b.dxA, xR + b.dxA]
     if pod_amt:
-        for t in range(41):
-            bxs.add(round(xR - 1.02 + 2.04 * t / 40, 5))
-    bxs.add(round(xbf, 4))
-    bxs = sorted(v for v in bxs if xr <= v <= xbf)
+        keys += [xR + s * (0.62 + 0.40 * t / 6) for s in (1, -1) for t in range(7)]
+    x0, x1 = max(xr, xR - (1.02 if pod_amt else 0.8)), min(xbf, xR + (1.02 if pod_amt else 0.8))
+    bxs = stations([(xr, x0, 0.5), (x0, x1, 0.12), (x1, xbf, 0.5)], keys + [xr, xbf], (xR - b.dxA, xR + b.dxA))
     right_wall = loft(P, [bed_ring(x) for x in bxs], True, True)
     m.add('bed', right_wall, [g.mirror_z() for g in right_wall])
 
@@ -292,8 +320,8 @@ def build(c):
         for s in (1, -1):
             zl = b.half_width(axle) + (pod(axle) if axle == xR else 0) - 0.02
             lip = lathe(P, [(Ra + 0.012 + 0.024 * math.cos(t), 0.024 * math.sin(t))
-                                                                    for t in (2 * math.pi * k / 10 for k in range(11))],
-                        30, math.degrees(a0), 180 - math.degrees(a0))
+                                                                    for t in (2 * math.pi * k / 8 for k in range(9))],
+                        20, math.degrees(a0), 180 - math.degrees(a0))
             m.add('body', lip.rotate('x', -90).at((axle, wy, s * zl)))
 
     # ------------------------------------------------------------ door seams, handles, steps, mirrors
@@ -356,7 +384,9 @@ def build(c):
             for k in range(-5, 6):
                 zz = k * 0.105 + (0.05 if i % 2 else 0)
                 if abs(zz) < 0.56:
-                    m.add('front_fascia', rbox('plastic_black', 0.02, 0.03, 0.07, 0.01, (xf + 0.032, y, zz)))
+                    # half-buried in the grille panel: keep only the part in front of it
+                    m.add('front_fascia', in_front_of(rbox('plastic_black', 0.02, 0.03, 0.07, 0.01, (xf + 0.032, y, zz)),
+                                                      xf + 0.032))
         m.add('front_fascia', rbox(P, 0.03, 0.035, 1.18, 0.015, (xf + 0.03, (gy0 + gy1) / 2 + 0.03, 0)))  # body-colour bar
     # headlamps wrapping round the corners
     hy = hf - 0.16
@@ -435,10 +465,11 @@ def build(c):
     # ------------------------------------------------------------ wheels
     r, w, bd = c['tyre_r'], c['tyre_w'], c['bead']
     if c['dually']:
-        tr = tyre(r, w, bd, 'hwy')
-        front = tr + rim(bd, w, 'dually_front', 'chrome', nuts=8)
-        outer = tr + rim(bd, w, 'deep', 'chrome', nuts=8)
-        inner = tr + rim(bd, w, 'steel', 'steel', nuts=8)
+        tr = tyre(r, w, bd, 'hwy', segs=TYRE_SEGS, lugs=HWY_LUGS, lean_crown=True)
+        front = tr + rim(bd, w, 'dually_front', 'chrome', nuts=8, segs=RIM_SEGS)
+        outer = tr + rim(bd, w, 'deep', 'chrome', nuts=8, segs=RIM_SEGS)
+        # the inner dual's face is clamped against the outer wheel: barrel and disc only
+        inner = tr + rim(bd, w, 'steel', 'steel', nuts=0, segs=RIM_SEGS)[:2]
         zc, gap = c['dual_c'], c['dual_gap'] / 2
         for s, sd in ((1, 'right'), (-1, 'left')):
             st = m.node('wheel_front_%s_steer' % sd, 'frame', (xF, wy, s * (zt - 0.10)))
@@ -447,14 +478,14 @@ def build(c):
             m.add(rr, place_wheel(outer, (xR, wy, s * (zc + gap)), s))
             m.add(rr, place_wheel(inner, (xR, wy, s * (zc - gap)), s))
             m.add(rr, cyl_between('steel_dark', (xR, wy, s * (zc - gap)), (xR, wy, s * (zc + gap - 0.08)), 0.11, 20))
-        spare = tr + rim(bd, w, 'steel', 'steel', nuts=8)
+        spare = tyre(r, w, bd, 'hwy', segs=SPARE_SEGS, lugs=HWY_LUGS, lean_crown=True) + rim(bd, w, 'steel', 'steel', nuts=8, segs=SPARE_SEGS)
     else:
-        whl = tyre(r, w, bd, 'at') + rim(bd, w, 'aluminum', 'aluminum', nuts=6)
+        whl = tyre(r, w, bd, 'at', segs=TYRE_SEGS) + rim(bd, w, 'aluminum', 'aluminum', nuts=6, segs=RIM_SEGS)
         for s, sd in ((1, 'right'), (-1, 'left')):
             st = m.node('wheel_front_%s_steer' % sd, 'frame', (xF, wy, s * (zt - 0.08)))
             m.add(m.node('wheel_front_%s_spin' % sd, st, (xF, wy, s * zt)), place_wheel(whl, (xF, wy, s * zt), s))
             m.add(m.node('wheel_rear_%s_spin' % sd, 'frame', (xR, wy, s * zt)), place_wheel(whl, (xR, wy, s * zt), s))
-        spare = tyre(r, w, bd, 'at') + rim(bd, w, 'steel', 'steel_dark', nuts=6)
+        spare = tyre(r, w, bd, 'at', segs=SPARE_SEGS) + rim(bd, w, 'steel', 'steel_dark', nuts=6, segs=SPARE_SEGS)
     m.add('spare_wheel', [g.at((xr + 0.60, rk - 0.16, 0)) for g in spare])
     return m
 
