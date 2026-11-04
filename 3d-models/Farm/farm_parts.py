@@ -648,3 +648,43 @@ def align_y(geos, d, center):
     one = not isinstance(geos, (list, tuple))
     out = [g.transform(m, center) for g in ([geos] if one else geos)]
     return out[0] if one else out
+
+
+def corrugated_sheet(mat, origin, u, v, lu, lv, pitch=0.20, depth=0.025, thick=0.003):
+    """Light corrugated sheet: ribs run along v (length lv), corrugations repeat along u
+    (length lu); crests rise along n = u x v. Two faces, no long edge strips, so it costs
+    16 triangles per corrugation. origin is the u = v = 0 corner on the back face."""
+    u, v = norm(u), norm(v)
+    n = cross(u, v)
+    waves = max(1, int(round(lu / pitch)))
+    p = lu / waves
+    prof = []
+    for i in range(waves):
+        a = i * p
+        prof += [(a, 0.0), (a + p * 0.30, depth), (a + p * 0.55, depth), (a + p * 0.85, 0.0)]
+    prof.append((lu, 0.0))
+    pos, nr, idx = [], [], []
+    for side, off in ((1, thick), (-1, 0.0)):
+        base = len(pos)
+        for k, (a, h) in enumerate(prof):
+            a0 = prof[max(k - 1, 0)]
+            a1 = prof[min(k + 1, len(prof) - 1)]
+            t = (a1[0] - a0[0], a1[1] - a0[1])
+            ln = math.hypot(*t) or 1.0
+            nn = norm(add(mul(n, t[0] / ln), mul(u, -t[1] / ln)))
+            for w in (0.0, lv):
+                pos.append(add(add(add(origin, mul(u, a)), mul(v, w)), mul(n, h + off)))
+                nr.append(mul(nn, side))
+        for k in range(len(prof) - 1):
+            q = base + 2 * k
+            idx += [(q, q + 2, q + 3), (q, q + 3, q + 1)]
+    for k in (0, len(prof) - 1):             # end strips
+        a, h = prof[k]
+        o = mul(u, -1 if k == 0 else 1)
+        q = len(pos)
+        for w in (0.0, lv):
+            for off in (0.0, thick):
+                pos.append(add(add(add(origin, mul(u, a)), mul(v, w)), mul(n, h + off)))
+                nr.append(o)
+        idx += [(q, q + 1, q + 3), (q, q + 3, q + 2)]
+    return Geo(mat, pos, nr, idx)
