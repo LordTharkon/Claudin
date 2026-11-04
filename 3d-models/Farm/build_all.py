@@ -17,5 +17,6 @@ for script in ('build_utility_tractor.py', 'build_row_crop_tractor.py', 'build_c
                'build_mower_conditioner.py',
                'build_telehandler.py',
                'build_stock_trailer.py',
+               'build_atv.py',
                ):
     subprocess.run([sys.executable, os.path.join(here, script)], check=True, cwd=here)
