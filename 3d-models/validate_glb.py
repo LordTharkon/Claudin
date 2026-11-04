@@ -4,7 +4,8 @@
     python3 3d-models/validate_glb.py pickup     # only paths containing "pickup"
 
 Exits non-zero if any model fails. Checks: glTF 2.0 / no Draco / allowed extensions;
-Y-up metres with the origin on the ground, centred; rest pose (node translations only);
+Y-up metres with the origin on the ground, centred; rest pose (node translations only, except
+track shoes `track_<side>_shoe_NN`, which carry the rotation that follows the track loop);
 TEXCOORD_0 on every primitive, UVs inside 0-1, no overlapping UVs per material texture,
 >= 4 px island padding at 1024 px and texel-density spread; material names from the
 list, one PNG baseColorTexture each named after the material, white baseColorFactor
@@ -31,6 +32,14 @@ EXT_OK = {'KHR_texture_transform', 'KHR_materials_emissive_strength'}
 SUFFIXES = ('_steer', '_spin', '_tilt', '_rotate', '_lift', '_slide')
 TEX = 1024
 PAD = 4
+SHOE = re.compile(r'^track_(left|right)_shoe_\d{2,}$')
+
+
+def quat_matrix(q):
+    x, y, z, w = q
+    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                     [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                     [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
 
 
 def load(path):
@@ -135,6 +144,10 @@ def validate(path):
         elif 'instanc' in n['name'].lower():
             E('node "%s" looks like an instance name' % n['name'])
         for k in ('rotation', 'scale', 'matrix'):
+            if k == 'rotation' and k in n and n.get('name') and SHOE.match(n['name']):
+                if abs(np.linalg.norm(n[k]) - 1) > 1e-5:
+                    E('node "%s" rotation is not a unit quaternion' % n['name'])
+                continue
             if k in n:
                 E('node "%s" has %s (rest pose should only translate)' % (n.get('name'), k))
     if len(set(names)) != len(names):
@@ -149,25 +162,30 @@ def validate(path):
     info.append('%d nodes, %d rigged (%s)' % (len(names), len(rigged),
                 ', '.join('%s %d' % (s, sum(n.endswith(s) for n in rigged)) for s in SUFFIXES if any(n.endswith(s) for n in rigged))))
 
-    # ---- world bounds from translation-only hierarchy
+    # ---- world bounds (translation + rotation hierarchy)
     world = {}
     root = doc['scenes'][doc.get('scene', 0)]['nodes']
 
-    def walk(i, t):
+    def walk(i, R, t):
         n = doc['nodes'][i]
-        t = t + np.array(n.get('translation', [0, 0, 0]))
-        world[i] = t
+        t = t + R @ np.array(n.get('translation', [0, 0, 0]))
+        if 'rotation' in n:
+            R = R @ quat_matrix(n['rotation'])
+        world[i] = (R, t)
         for c in n.get('children', []):
-            walk(c, t)
+            walk(c, R, t)
     for r in root:
-        walk(r, np.zeros(3))
+        walk(r, np.eye(3), np.zeros(3))
     lo, hi = np.full(3, 1e9), np.full(3, -1e9)
+    drawn = 0
     for i, n in enumerate(doc['nodes']):
         if 'mesh' in n:
+            R, t = world[i]
             for p in doc['meshes'][n['mesh']]['primitives']:
-                a = doc['accessors'][p['attributes']['POSITION']]
-                lo = np.minimum(lo, np.array(a['min']) + world[i])
-                hi = np.maximum(hi, np.array(a['max']) + world[i])
+                P = accessor(doc, binary, p['attributes']['POSITION']).astype(np.float64) @ R.T + t
+                lo = np.minimum(lo, P.min(0))
+                hi = np.maximum(hi, P.max(0))
+                drawn += doc['accessors'][p['indices']]['count'] // 3
     size = hi - lo
     if abs(lo[1]) > 1e-3:
         E('lowest point is at y=%.4f, not on the ground' % lo[1])
@@ -176,6 +194,8 @@ def validate(path):
     if not (size[0] > size[2] * 0.9):
         E('model does not appear to face +X (length %.2f < width %.2f)' % (size[0], size[2]))
     info.append('size L %.2f x W %.2f x H %.2f m' % (size[0], size[2], size[1]))
+    unique = sum(doc['accessors'][p['indices']]['count'] // 3 for me in doc['meshes'] for p in me['primitives'])
+    info.append('%d tris drawn, %d unique (%d meshes)' % (drawn, unique, len(doc['meshes'])))
 
     # ---- materials / textures
     mats = doc.get('materials', [])

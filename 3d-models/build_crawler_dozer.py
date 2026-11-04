@@ -9,7 +9,8 @@ Key real-world dimensions used (metres):
 import math
 
 from meshkit import (MATERIALS, Model, belt_path, box, box_between, box_span, cyl_between,
-                     cylinder, extrude, from_columns, lathe, resample_loop, save, sphere)
+                     cylinder, extrude, lathe, sphere)
+from track_kit import mirror_track_shoes, save_with_instanced_tracks, track_loop_nodes
 from dozer_parts import blade, cab, exhaust, handrail, lamp, louvres, precleaner
 
 # ---- undercarriage geometry
@@ -52,18 +53,9 @@ def track_shoe():
 
 
 def track_side(m):
-    """Right-hand track assembly (centred on z = +ZT)."""
-    part = 'track_right'
+    """Right-hand track assembly (centred on z = +ZT). The chain is a group of shoe nodes."""
     m.node('undercarriage_right')
-    loop = belt_path([IDLER, SPROCKET])
-    n_guess = round(sum(math.dist(loop[i], loop[i - 1]) for i in range(len(loop))) / PITCH)
-    samples, total = resample_loop(loop, n_guess)
-    shoe = track_shoe()
-    for (px, py), tx, ty in samples:
-        u = (tx, ty, 0)
-        nrm = (ty, -tx, 0)      # outward for a CCW loop
-        M = from_columns(u, nrm, (0, 0, 1))
-        m.add(part, [g.transform(M, (px, py, ZT)) for g in shoe])
+    track_loop_nodes(m, 'track_right', None, belt_path([IDLER, SPROCKET]), PITCH, ZT, track_shoe())
 
     # track frame (side profile extruded across)
     frame = [(-0.98, 0.42), (1.02, 0.42), (1.16, 0.52), (1.16, 0.66), (1.02, 0.74),
@@ -272,6 +264,7 @@ def build():
     m = Model('Crawler Dozer', MATERIALS)
     track_side(m)
     m.mirror('right', 'left')
+    mirror_track_shoes(m)
     body(m)
     blade_assembly(m)
     ripper(m)
@@ -279,4 +272,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'Construction/crawler-dozer', 'crawler_dozer')
+    save_with_instanced_tracks(build(), 'Construction/crawler-dozer', 'crawler_dozer')
