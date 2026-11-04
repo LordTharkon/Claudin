@@ -24,7 +24,7 @@ from vehicle_parts import rim  # noqa: E402
 FARM_MATERIALS = dict(MATERIALS)
 FARM_MATERIALS.update({
     'hay':              {'color': (0.62, 0.48, 0.20), 'metallic': 0.0, 'roughness': 0.95},
-    'steel_galvanized': {'color': (0.58, 0.60, 0.61), 'metallic': 0.75, 'roughness': 0.5},
+    'steel_galvanized': {'color': (0.68, 0.70, 0.72), 'metallic': 0.6, 'roughness': 0.45},
     'grain':            {'color': (0.60, 0.42, 0.14), 'metallic': 0.0, 'roughness': 0.9},
 })
 NEW_MATERIALS = ('hay', 'steel_galvanized', 'grain')
