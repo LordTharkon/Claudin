@@ -14,7 +14,8 @@ import mining_parts  # noqa: E402,F401  (installs the cylinder-hose builder)
 from check_zfighting import report  # noqa: E402
 
 BUILDERS = ['build_large_mining_dozer', 'build_large_wheel_loader', 'build_water_cart',
-            'build_mining_motor_grader', 'build_mine_light_vehicle', 'build_mine_site_props']
+            'build_mining_motor_grader', 'build_mine_light_vehicle', 'build_mine_site_props',
+            'build_underground_loader']
 
 
 def main():
