@@ -630,26 +630,6 @@ def coupling(center, color='lamp_red'):
             cyl_between(color, (x + 0.04, y, z), (x + 0.07, y, z), 0.02, 8)]
 
 
-def tube_rail(points, r=0.021, mat=GALV, segs=8):
-    """Bent tube without joint spheres on straight runs (galvanised rails, hoops)."""
-    out = [cyl_between(mat, a, b, r, segs, caps=False) for a, b in zip(points, points[1:])]
-    out += [sphere(mat, r, segs, 4).at(p) for p in points[1:-1]]
-    return out
-
-
-def align_y(geos, d, center):
-    """Turn geometry built around local +Y so +Y points along d, then move it to center."""
-    from meshkit import from_columns
-    y = norm(d)
-    ref = (0, 1, 0) if abs(y[1]) < 0.9 else (1, 0, 0)
-    x = norm(cross(y, ref))
-    z = cross(x, y)
-    m = from_columns(x, y, z)
-    one = not isinstance(geos, (list, tuple))
-    out = [g.transform(m, center) for g in ([geos] if one else geos)]
-    return out[0] if one else out
-
-
 def corrugated_sheet(mat, origin, u, v, lu, lv, pitch=0.20, depth=0.025, thick=0.003):
     """Light corrugated sheet: ribs run along v (length lv), corrugations repeat along u
     (length lu); crests rise along n = u x v. Two faces, no long edge strips, so it costs

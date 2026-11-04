@@ -1,6 +1,6 @@
 # Farm machinery pack
 
-Seven true-scale (1:1, metres) farm models, each a single self-contained `.glb`, generated
+Sixteen true-scale (1:1, metres) farm models (the first seven plus a nine-model expansion pack), each a single self-contained `.glb`, generated
 from plain Python with the same toolkit as the Construction pack. Every rule in
 [`../README.md`](../README.md) applies: +Y up, every machine faces +X, origin on the ground
 centred under the model, rest pose with identity node rotations, descriptive node names, rig
@@ -24,6 +24,18 @@ numbers; generic designs at typical class dimensions.
 | **Tipping grain trailer** (two-axle, ~14 t) | `grain-trailer/grain_trailer.glb` | 7.65 × 2.50 × 3.05 m | 22.4k | `body_tilt` on rear hinges with front `hoist_cylinder`; `tailgate_tilt` (top-hinged) with `grain_chute_slide` hatch; turntable front axle `front_axle_steer` carrying `drawbar_tilt` (A-frame, stand, brake/hydraulic lines); wheels `_spin`. 6.0 × 2.4 m body, 1.0 m sides + 0.5 m extensions |
 | **Farm props** | `farm-props/farm_props.glb` | 20.9 × 6.9 × 8.1 m (layout) | 16.2k | Separate root nodes: `round_bale_stack` (3 + 2), `small_square_bale_stack` (4 interlocked layers of 0.90 × 0.46 × 0.36 bales with twine), `round_bale`, `grain_bin` (6 m dia, 6 m eave, corrugated, stiffeners, caged ladder, roof ladder, peak vent, door, aeration fan, eave manway `hatch_rotate` hinged on its upper edge about X), `field_gate` (3.6 m galvanised gate on timber posts, `gate_rotate` about Y on the hinge pins, latch) |
 
+Heights are to the cab roof unless noted; antennas and exhausts add a little. Triangle budget:
+under 60k per machine and 20k for the props file (`save_farm` asserts it on every build); the
+expansion pack's budgets are listed with its table below.
+
+![Utility tractor](utility-tractor/preview.png)
+![Row-crop tractor](row-crop-tractor/preview.png)
+![Combine harvester](combine-harvester/preview.png)
+![Self-propelled sprayer](self-propelled-sprayer/preview.png)
+![Round baler](round-baler/preview.png)
+![Tipping grain trailer](grain-trailer/preview.png)
+![Farm props](farm-props/preview.png)
+
 ## Expansion pack: implements, farm vehicles and yard props
 
 Implements are sized for the **row-crop tractor**. Its hitch in exported (centred) coordinates:
@@ -43,18 +55,26 @@ their hitch eye at 0.51 m.
 | **ATV / quad** (farm spec, ~500 cc 4x4) | `atv/atv.glb` | 2.33 × 1.14 × 1.35 m (to the mirrors) | 23.7k | `paint_green` plastics: front and rear fenders, hood, rear body, foot-well guards; tube front and rear racks, brush guard, rear bumper, 2 in receiver with ball mount and pin; engine, CVT cover, exhaust and muffler, skid plate, front A-arms and coil-over shocks, rear axle with shocks; seat, tank cap, headlights, indicators, tail lamps; `wheel_front_{left,right}_steer` → `_spin` and `wheel_rear_*_spin` (25x8-12 / 25x10-12 bar-tread tyres); `handlebar_rotate` (bars, grips, levers, mirrors and headlight pod about the 20°-leaning column) |
 | **Livestock props** | `livestock-props/livestock_props.glb` | 27.6 × 6.8 × 2.7 m (layout, two rows) | 13.1k | Separate root nodes: `bale_feeder_ring` (2.4 m, galvanised rings, sheeted skirt, 14 tombstone head openings, section joints), `water_trough` (3.0 × 1.2 oval, banded wall, water surface, float-valve cover, supply pipe, drain), `frost_free_waterer` (insulated unit with two ball-sealed drinkers on a pad), tileable fence pieces with their origin at the start post: `cattle_panel` (3.6 m, 6 oval rails, connector pins), `fence_corner_post` (lugs on two faces), `fence_gate_panel` (3.6 m with a 1.2 m man gate on `fence_gate_rotate`); `squeeze_chute` (2.6 m, squeeze sides and levers, cleated floor, head gate leaves `head_gate_left_slide` / `head_gate_right_slide`, guillotine `tailgate_slide`), `alley_section` (6.0 m sheeted alley), `feed_bunk` (6.0 m concrete U with feed and neck rail), `creep_feeder` (on skids, troughs, calf bars, `creep_feeder_lid_tilt`), `mineral_feeder` (hooded tub on a post) and `lick_tub`, `calf_hutch` (poly dome with bedding and a welded-wire run, bucket), `loading_ramp` (cleated deck to a 0.42 m top deck matching the stock trailer floor, sheeted side rails) |
 | **Farmyard props** | `farmyard-props/farmyard_props.glb` | 37.3 × 9.9 × 5.6 m (layout) | 22.0k | Separate root nodes: `pole_barn` (18 × 9 m, four 4.5 m bays, timber posts, trusses, purlins and girts, `steel_galvanized` corrugated roof with ridge cap, clad back wall and gables, open front with a 4.0 m clear height under the eave beam and 4.3 m between posts so the row-crop tractor fits; the +x bay closed by a partition and two sliding doors `barn_door_{left,right}_slide` on a top track), `diesel_tank` (~1000 gal on a galvanised stand, fill, vent, gauge, valve, hose and nozzle on a hook), `chemical_ibc` (caged tote on a bunded spill pallet), `seed_bag_pallet` / `fertiliser_bag_pallet` (25 interlocked bags each, one shared bag builder), `feed_sacks`, `wrapped_bale_{black,white,green}` (`plastic_black` / `paint_white` / `paint_green`), `silage_clamp_wall` (precast L panel with lifting eyes), `tyre_stack` (one tyre mesh reused), `wheelbarrow`, `pitchfork`, `shovel`, `poly_water_tank` (5000 L), `jerry_can`, `farm_entrance` (timber posts, crossbar, blank sign board) and `cattle_grid` |
-<!-- expansion rows -->
 
-Heights are to the cab roof unless noted; antennas and exhausts add a little. Triangle budget:
-under 60k per machine and 20k for the props file (`save_farm` asserts it on every build).
+Triangle budgets (checked by `save_farm` on every build): under 40k per implement, 60k for the
+telehandler, 25k each for the ATV, the stock trailer and the livestock props, 30k for the
+farmyard props. Repeated items share one builder (coulters, discs, bags, tyres, fence pieces).
+All implements carry lamps, reflectors, blank SMV triangles and blank striped hazard boards
+(trailed kit) and parking jacks or stands; every hydraulic cylinder has its hoses.
 
-![Utility tractor](utility-tractor/preview.png)
-![Row-crop tractor](row-crop-tractor/preview.png)
-![Combine harvester](combine-harvester/preview.png)
-![Self-propelled sprayer](self-propelled-sprayer/preview.png)
-![Round baler](round-baler/preview.png)
-![Tipping grain trailer](grain-trailer/preview.png)
-![Farm props](farm-props/preview.png)
+Why some machines differ from the brief: the 6 m **seed drill** is trailed, not mounted — a rigid
+6.3 m mounted planter is wider than it is long and fails the "faces +X" check, so it is a
+trailed drill whose wings fold for transport. The optional **farm pickup** was not built.
+
+![Reversible plough](reversible-plough/preview.png)
+![Disc harrow](disc-harrow/preview.png)
+![Seed drill](seed-drill/preview.png)
+![Mower conditioner](mower-conditioner/preview.png)
+![Telehandler](telehandler/preview.png)
+![Stock trailer](stock-trailer/preview.png)
+![ATV](atv/preview.png)
+![Livestock props](livestock-props/preview.png)
+![Farmyard props](farmyard-props/preview.png)
 
 ## Materials
 
@@ -66,6 +86,15 @@ Standard names from the pack list, plus three new ones used only where nothing o
 | `hay` | round and small square bales (props) |
 | `steel_galvanized` | grain bin, its ladders and the field gate (props) |
 | `grain` | grain fill inside the combine's grain tank |
+
+The expansion pack adds no new names. It uses `steel_galvanized` (livestock equipment, fencing,
+barn roof and cladding, stands, IBC cage), `hay` (feed in the bunk, hutch bedding) and `grain`
+(creep-feeder troughs, lick tub). These are the only `validate_glb.py` findings for the pack. It
+also uses the site-prop materials `timber` (barn posts and trusses, pallets, entrance, ramp
+cleats), `concrete` (feed bunk, clamp wall, pads, cattle grid), `woven_polypropylene` (feed
+sacks, mineral) and `gravel` (cattle-grid pit), plus `cable_rubber` (trailer lighting lead). The
+stock trailer is `aluminum`. The ATV's plastics and the poly water tank are `paint_green`. Wrapped
+bales are `plastic_black`, `paint_white` and `paint_green`.
 
 Other notes: the sprayer's main tank is `paint_white` (poly tank) with a `paint_gray` rinse tank;
 `paint_red` / `paint_orange` appear only on small functional parts (nozzle tips, coupling heads,
@@ -81,6 +110,13 @@ and `concrete` (bin pad).
   the left wing to a straight 36 m boom (mirror signs on the right).
 * Rigid links that follow two parts (hitch lift rods) are `_rotate` nodes with the origin on the
   upper pin, like the backhoe bucket link.
+* Folding implements (disc harrow and seed-drill wings, drill markers, mower header) are
+  authored unfolded or lowered and posed into transport. The rest-pose rotation is baked in, so
+  each hinge is a real pivot. The README rows give the angle that unfolds each one.
+* Head gates, the chute tailgate, barn doors, the trailer slider gate and the telehandler
+  telescope are `_slide` nodes. The trailer jack leg is `_lift`.
+* Fence pieces (`cattle_panel`, `fence_corner_post`, `fence_gate_panel`, `alley_section`) have
+  their node origin on the ground at their start post, so copies tile end to end along x.
 * R1 tyre bars are directional: the chevron tips lead in forward rotation on both sides.
 
 ## Building
@@ -103,9 +139,12 @@ python3 3d-models/Farm/check_zfighting_farm.py
   mirrors, lamps, hoses, the farm material list (`FARM_MATERIALS`) and `save_farm` (writes the
   `.glb` and checks the triangle budget). It puts `3d-models/` on `sys.path` and imports the shared
   helpers (`meshkit`, `uvkit`, `vehicle_parts`, `dozer_parts`, `bodykit`) without modifying them.
+  Expansion helpers: `sheet` (thin curved plates: mouldboards, skims), `dished_disc`,
+  `align_y`, `corrugated_sheet` (light two-sided corrugated cladding), `hazard_board`,
+  `smv_panel`, `rear_light`, `reflector`, `parking_jack`, `hitch_eye`, `coupling`.
 * `build_*.py` — one script per model; `build_all.py` runs them all.
 * `check_zfighting_farm.py` — runs the shared `check_zfighting.py` check over the Farm builders
-  (the shared script only lists the Construction models). All Farm models report 0.
+  (the shared script only lists the Construction models). All 16 Farm models report 0.
 * `render_preview.js` + `render_preview.html` — renders a `preview.png` in the style of the
   dozer previews with Playwright and a local copy of three.js 0.160 (see the header comment);
   `pose=` lets you try the rig before export.
