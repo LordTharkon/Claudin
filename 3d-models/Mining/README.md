@@ -1,0 +1,98 @@
+# Mining expansion
+
+The support fleet for the ultra-class mining machines: a large mining dozer, a large wheel
+loader, a water cart, a mining motor grader, a mine-spec light vehicle and a set of mine
+site props. Like the Construction models, each one is a single self-contained, true-scale
+(metres) `.glb`, generated from plain Python. All of them follow the pack conventions in
+[`../README.md`](../README.md): +Y up, facing +X, origin on the ground and centred, rest
+pose with identity node rotations, descriptive node names, rig suffixes with origins on real
+pivots, `<name>_rotate` + `<name>_rod_slide` hydraulic cylinders, one 1024² PNG
+`baseColorTexture` per material named after it, white `baseColorFactor`, UVs in 0–1 with no
+overlaps and ≥ 4 px padding.
+
+All designs are generic, built to typical class dimensions: no logos, lettering, fleet
+numbers or model numbers. Mine-number panels on the light vehicle are left blank.
+
+## Models
+
+| Model | File | Size (L × W × H) | Moving parts / notes |
+|---|---|---|---|
+| **Large mining dozer** (~100 t class) | `large-mining-dozer/large_mining_dozer.glb` | 10.3 × 6.4 (blade) × 4.7 m; 3.5 m over tracks | U-blade 6.30 × 2.65 m on push arms: `push_frame_tilt` (lift, trunnions on the track frames), `blade_tilt` (side tilt) with dual `blade_tilt_cylinder_{left,right}` and `blade_lift_cylinder_{left,right}`. Single-shank ripper `ripper_tilt` with `ripper_lift_cylinder_*` and `ripper_pitch_cylinder_*`. 2.80 m gauge, 710 mm single-grouser shoes on a 317 mm pitch belt, 8 bottom rollers, 2 carriers, idler and segmented sprocket per side (all `_spin`). ROPS cab with white roof, fender walkways with guardrails and kickplates, rear access stair, fuel and hydraulic tanks, hazard stripes. 55.7k tris |
+| **Large wheel loader** (~13 m³ bucket) | `large-wheel-loader/large_wheel_loader.glb` | 16.7 × 5.1 × 6.65 m | Articulated: front frame is `hitch_rotate` (vertical hitch pins) with `steering_cylinder_{left,right}`; oscillating `rear_axle_rotate`. Z-bar linkage: `lift_arm_tilt` with `lift_cylinder_{left,right}`, `bell_crank_tilt` on the arm cross tube driven by `tilt_cylinder`, `tilt_link_rotate` to `bucket_tilt` (carried racked back ~0.4 m off the ground). 45/65R45-class tyres (2.68 m) on 5.20 m wheelbase, 5.0 m 9-tooth rock bucket, rear stair, side decks with guardrails, tanks between the wheels, counterweight with hazard stripes. 45.5k tris |
+| **Water cart** (~90 kL) | `water-cart/water_cart.glb` | 13.1 × 7.6 (mirrors; 7.0 over deck) × 6.6 m | Rigid two-axle haul-truck chassis: `wheel_front_{left,right}_steer` with `steering_cylinder_*`, duals on `wheel_rear_*_spin`, oil-pneumatic struts. Stepped 8.0 × 5.6 m tank (~89 m³ gross) with stiffening bands, tank-top walkway with guardrails, manholes and vent; front and rear ladders, diagonal front stairway, bumper deck with ladders. Front water cannon on a turret: `cannon_rotate` (Y) → `cannon_tilt` with `cannon_tilt_cylinder`. Rear spray bar with 4 heads (valve, actuator, fan deflector), pump. 40.00R57-class tyres. 58.2k tris |
+| **Mining motor grader** (24 ft / 7.3 m moldboard) | `mining-motor-grader/mining_motor_grader.glb` | 13.5 × 5.05 × 4.6 m (moldboard angled 50° for travel; 4.0 m over tyres) | Articulated `front_frame_rotate` (the frame articulation) with `articulation_cylinder_*`; oscillating `front_axle_rotate` with `wheel_front_*_steer`; rear tandems on walking beams `tandem_{left,right}_tilt`. Blade chain: `drawbar_tilt` (ball joint, `lift_cylinder_{left,right}`) → `circle_rotate` (toothed circle) → `moldboard_tilt` (pitch, `moldboard_tip_cylinder_*`) → `moldboard_slide` (side shift on chrome rails, `moldboard_side_shift_cylinder`). Front scarifier `scarifier_tilt` with 7 shanks and `scarifier_lift_cylinder`. 29.5R29-class tyres, rear decks with guardrails and ladders. 57.9k tris |
+| **Mine-spec light vehicle** (crew-cab 4x4 ute) | `mine-light-vehicle/mine_light_vehicle.glb` | 5.4 (5.5 with tow ball) × 1.9 (2.3 with mirrors) × 2.1 m to the beacon (2.4 to the aerial; 5.3 with the flag) | White body, internal 6-point ROPS, alloy bull bar with spotlights, side steps, snorkel, roof LED light bar and amber beacon, UHF aerial, flat alloy tray with drop sides, headboard, tray toolbox and two underbody toolboxes, rear bar with hazard stripes, blank mine-number panels (doors, bull bar, tailgate). `wheel_front_*_steer`, wheels `_spin`; the ~4 m buggy-whip flag (pole, pennant, tip lamp) is its own node `buggy_whip_flag`. 29.1k tris |
+| **Mine site props** | `mine-site-props/mine_site_props.glb` | 24.6 × 5.7 × 3.6 m (four props in a row along x) | Separate nodes: **`lighting_plant`** (towable, generator canopy, 4 LED floods; mast `mast_lift` → `mast_stage_2_lift` → `mast_stage_3_lift`, ~2.0 m travel each; `lamp_head_rotate`; `outrigger_{front,rear}_{left,right}_slide`; wheels and jockey wheel `_spin`), **`safety_berm_section`** (modular 6 m windrow, 2.0 m high, 5.7 m base, flat ends so sections butt together, embedded rocks), **`haul_road_sign`** (2.5 × 1.4 m blank face on two posts with concrete footings), **`fuel_bowser`** (self-bunded skid tank ~25 kL with pump cabinet, meter, `fuel_hose_reel_spin`, nozzle holster, ladder, top guardrail, vents, manhole, fork pockets). 8.3k tris |
+
+Every machine is under the 80k-triangle budget and the props file is under 20k. Heights are
+to the top of the cab roof unit or beacons; aerials and exhaust tips add a little.
+
+![Large mining dozer](large-mining-dozer/preview.png)
+![Large wheel loader](large-wheel-loader/preview.png)
+![Water cart](water-cart/preview.png)
+![Mining motor grader](mining-motor-grader/preview.png)
+![Mine light vehicle](mine-light-vehicle/preview.png)
+![Mine site props](mine-site-props/preview.png)
+
+## Materials
+
+Colour scheme: `paint_yellow` bodies on `chassis_black` frames, `paint_white` cab roofs,
+`lamp_beacon` beacons, `lamp_amber` indicators and reflective `paint_red` / `paint_white`
+hazard stripes on bumpers, counterweights and skid ends. The light vehicle body is
+`paint_white`.
+
+Materials used across the pack: `paint_yellow`, `paint_white`, `paint_red`, `paint_orange`
+(buggy-whip pole), `paint_gray_dark`, `chassis_black`, `plastic_black`, `steel`, `steel_dark`,
+`track_steel`, `wear_steel`, `chrome`, `aluminum`, `tyre_rubber`, `hose_rubber`, `rubber_trim`,
+`seat_fabric`, `glass`, `glass_tinted`, `lamp_lens`, `lamp_amber`, `lamp_red`, `lamp_beacon`,
+plus the existing site-prop materials `concrete` (sign footings) and `gravel` (berm rocks).
+
+**One new material:** `dirt` (the safety berm), because nothing on the list fits a dirt
+windrow. `validate_glb.py` flags it (`material "dirt" not in the allowed list`); that is the
+only finding in the pack and is expected. All other checks pass for all six files.
+
+## Files in this folder
+
+* `build_*.py`: one script per model, each writes `<slug>/<slug>.glb`.
+* `build_all.py`: regenerates all six models.
+* `mining_parts.py`: Mining-specific helpers. It imports the shared modules from
+  `3d-models/` through `sys.path` and does not change them. It contains:
+  * `hydraulic_parts_with_hoses`: wraps the shared `meshkit.hydraulic_parts` to add a hose run
+    (two fittings and a hose line) on top of every cylinder barrel. Importing `mining_parts`
+    installs it as the builder that `meshkit.Model.finalize` uses, **only in that Python
+    process**, so the Construction models are unaffected.
+  * `blade`: a copy of `dozer_parts.blade` with a scale factor `k` for the fixed-size details
+    (bolts, end plates, ribs, edge lips), which are too small at 6 m blade scale. It is used
+    for the U-blade and the grader moldboard.
+  * `cab`: adapted from `dozer_parts.cab`, with heavier ROPS posts, a separate roof material
+    (white), a roof pressuriser/A-C unit, LED lamps, two beacons, an aerial and an optional
+    steering wheel.
+  * `stairs`, `guardrail` (top rail, mid rail, posts, kickplate), `ladder`, `deck`
+    (plate with grating), `hazard_stripes` (diagonal red/white bands on any rectangle).
+  * Scaled-up `lamp`, `beacon`, `louvres`, `exhaust`, `precleaner`, `tank_cap`,
+    `sight_gauge`.
+  * `MINING_MATERIALS`: the shared library plus `dirt`.
+* `check_zfighting_mining.py`: runs the shared z-fighting checker (`../check_zfighting.py`)
+  over the Mining builders. All six report 0 z-fighting pairs.
+* `preview/`: `render_previews.js` and `preview.html` regenerate the `preview.png` files
+  with three.js in headless Chromium, in the same style as the Construction previews.
+
+## Regenerating and checking
+
+```bash
+python3 3d-models/Mining/build_all.py
+```
+
+```bash
+python3 3d-models/validate_glb.py Mining/
+```
+
+```bash
+python3 3d-models/Mining/check_zfighting_mining.py
+```
+
+To re-render the previews, which needs Node, `three@0.160.0` and Playwright:
+
+```bash
+cd 3d-models/Mining/preview && npm install three@0.160.0 playwright && node render_previews.js
+```

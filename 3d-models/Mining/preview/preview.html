@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#e9ecef;overflow:hidden}</style>
+<script type="importmap">{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const q = new URLSearchParams(location.search);
+const W = +q.get('w') || 1200, H = +q.get('h') || 800;
+const az = +(q.get('az') ?? 35), el = +(q.get('el') ?? 22), zoom = +(q.get('zoom') ?? 1);
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+renderer.setSize(W, H); renderer.setPixelRatio(1);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xe9ecef);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096); scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({color:0xdcdfe2, roughness:1}));
+ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
+const grid = new THREE.GridHelper(200, 200, 0x8c9298, 0xb2b7bc); grid.position.y = 0.002; scene.add(grid);
+const fig = new THREE.Group();
+const mat = new THREE.MeshStandardMaterial({color:0x2a64a8, roughness:0.4});
+const bodyM = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 1.05, 8, 24), mat); bodyM.position.y = 0.745;
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 16), mat); head.position.y = 1.67;
+fig.add(bodyM, head); fig.traverse(o=>{o.castShadow=true});
+new GLTFLoader().load(q.get('m'), g => {
+  const root = g.scene; root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  scene.add(root);
+  const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  fig.position.set(box.min.x - 1.2, 0, box.max.z + 1.0 + (+q.get('figz')||0)); if (q.get('fig') !== '0') scene.add(fig);
+  const r = size.length() * 0.5;
+  const cam = new THREE.PerspectiveCamera(30, W/H, 0.1, 1000);
+  const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el);
+  const d = r / Math.sin(THREE.MathUtils.degToRad(15)) * 1.05 / zoom;
+  const tgt = new THREE.Vector3(c.x, size.y * 0.30, c.z);
+  cam.position.set(tgt.x + d*Math.cos(e)*Math.cos(a), tgt.y + d*Math.sin(e), tgt.z + d*Math.cos(e)*Math.sin(a));
+  cam.lookAt(tgt);
+  sun.position.set(c.x + r*1.2, r*3, c.z + r*1.6); sun.target.position.copy(c); scene.add(sun.target);
+  const sc = sun.shadow.camera; sc.left = sc.bottom = -r*1.6; sc.right = sc.top = r*1.6; sc.far = r*8; sc.updateProjectionMatrix();
+  renderer.render(scene, cam); document.title = 'done';
+}, undefined, e => { document.title = 'error ' + e; });
+</script></body></html>
