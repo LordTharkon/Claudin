@@ -1,4 +1,4 @@
-"""Self-propelled sprayer, high clearance, ~4400 L tank and a 36 m boom folded for transport.
+"""Self-propelled sprayer, high clearance, ~6000 L tank and a 36 m boom folded for transport.
 
 Key real-world dimensions used (metres):
   wheelbase 4.00, track 3.00, tyres 380/90R46 (1.85 dia), crop clearance ~1.35

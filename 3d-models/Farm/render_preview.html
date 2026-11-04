@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#e9ecef}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}</script>
+</head><body><script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const P = new URLSearchParams(location.search);
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xe9ecef);
+const camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.05, 400);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x666655, 1.4));
+const sun = new THREE.DirectionalLight(0xffffff, 2.4); sun.castShadow = true;
+sun.shadow.mapSize.set(4096,4096); scene.add(sun); scene.add(sun.target);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(200,200), new THREE.MeshStandardMaterial({color:0xd5d9dd, roughness:1}));
+ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
+const grid = new THREE.GridHelper(80,80,0x888888,0xb8bec4); grid.position.y = 0.002; scene.add(grid);
+const human = new THREE.Group(); const skin = new THREE.MeshStandardMaterial({color:0x3a6ea5, roughness:.7});
+const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.2,1.05,6,16), skin); body.position.y = 0.745;
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.12,20,12), skin); head.position.y = 1.68;
+human.add(body, head); human.traverse(o=>o.castShadow=true); scene.add(human);
+new GLTFLoader().load(P.get('m'), g => {
+  const root = g.scene;
+  const pose = P.get('pose');
+  if (pose) for (const item of pose.split(';')) { const [n, ax, deg] = item.split(':'); const o = root.getObjectByName(n);
+    if (o) { if (ax==='ty') o.position.y += +deg; else if (ax==='tx') o.position.x += +deg; else if (ax==='tz') o.position.z += +deg; else o.rotation[ax] = THREE.MathUtils.degToRad(+deg); } }
+  root.traverse(o=>{ if(o.isMesh){o.castShadow=o.receiveShadow=true; if (P.has('wire')) o.material.wireframe=true;} });
+  scene.add(root);
+  const b = new THREE.Box3().setFromObject(root), s = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3());
+  human.position.set(b.min.x - 0.8, 0, b.max.z + 0.3);
+  if (P.has('nohuman')) human.visible = false;
+  const R = Math.max(s.x, s.y, s.z);
+  const dir = (P.get('dir') || '1,0.55,1.15').split(',').map(Number);
+  const v = new THREE.Vector3(...dir).normalize();
+  const dist = R * (+P.get('zoom') || 1.45);
+  const tgt = P.has('tgt') ? new THREE.Vector3(...P.get('tgt').split(',').map(Number)) : new THREE.Vector3(c.x, s.y*0.38, c.z);
+  camera.position.copy(tgt).addScaledVector(v, dist); camera.lookAt(tgt);
+  sun.position.set(c.x + R*0.8, R*1.6, c.z + R*0.7); sun.target.position.copy(c);
+  Object.assign(sun.shadow.camera, {left:-R, right:R, top:R, bottom:-R, far: R*6}); sun.shadow.camera.updateProjectionMatrix();
+  renderer.render(scene, camera); document.title = 'done';
+});
+</script></body></html>

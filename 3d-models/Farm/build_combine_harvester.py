@@ -2,7 +2,7 @@
 
 Key real-world dimensions used (metres):
   wheelbase 3.75, drive tyres 800/70R32 (1.95 dia), steer tyres 600/65R28 (1.49 dia)
-  front track 2.84, grain tank ~10.5 m3, height to cab roof ~4.0
+  front track 2.84, grain tank ~8 m3, height to cab roof ~4.0
   header cut width 9.10, reel diameter 1.10, unloading auger ~6.5 m (stowed)
   length with header ~10.3, without ~7.8
 """

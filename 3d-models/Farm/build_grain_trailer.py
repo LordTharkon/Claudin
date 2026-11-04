@@ -1,7 +1,7 @@
 """Tipping grain trailer, two axles (turntable front axle), ~14 t payload, rear tipping.
 
 Key real-world dimensions used (metres):
-  body 6.00 x 2.40 inside ~2.30, sides 1.00 + 0.50 extensions (~18 m3)
+  body 6.00 x 2.40 inside ~2.30, sides 1.00 + 0.50 extensions (~21 m3)
   wheelbase 3.40, track 1.84, tyres 445/45R19.5 flotation, front-mounted hoist ram
   overall ~7.6 long, 2.55 wide, 2.85 high
 """
