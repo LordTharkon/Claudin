@@ -236,7 +236,7 @@ def beacon(center):
 # --------------------------------------------------------------------- cab ---
 
 def tractor_cab(x0, x1, yf, yr, hw, ys, x_fender, hw_low, door_side=-1, mat=BODY, roof_mat=BODY,
-                lower_front=None, seat_x=None, sill_front=None, wheel_tilt=40, loader_stick=True):
+                lower_front=None, seat_x=None, sill_front=None, wheel_tilt=40, loader_stick=True, door_x0=None):
     """Four-post tractor cab with glazing all round.
 
     x0/x1: rear/front of the cab, yf floor, yr underside of the roof, hw half width of
@@ -250,11 +250,12 @@ def tractor_cab(x0, x1, yf, yr, hw, ys, x_fender, hw_low, door_side=-1, mat=BODY
     # floor and lower body
     out.append(box_span(FRAME, x0, x1, yf - 0.05, yf, -hw_low, hw_low))
     out.append(box_span(FRAME, x_fender, x1, yf - 0.05, yf, -hw, hw))
-    out.append(box_span('rubber_trim', x0 + 0.04, x1 - 0.06, yf, yf + 0.01, -hw_low + 0.03, hw_low - 0.03))
+    out.append(box_span('rubber_trim', x0 + 0.04, x1 - 0.06, yf, yf + 0.01, -min(hw_low, hw - P) + 0.03, min(hw_low, hw - P) - 0.03))
     for s in (1, -1):
-        out.append(box_span(mat, x0, x_fender, yf, ys, s * (hw_low - 0.025), s * hw_low))     # tunnel wall
-        out.append(box_span(mat, x0 + 0.03, x_fender, ys - 0.025, ys, s * hw_low, s * (hw - 0.02)))  # sill shelf
-    out.append(box_span(mat, x0, x0 + 0.03, yf, ys, -hw_low, hw_low))
+        if x_fender > x0 + 0.05:
+            out.append(box_span(mat, x0, x_fender, yf, ys, s * (hw_low - 0.025), s * hw_low))     # tunnel wall
+            out.append(box_span(mat, x0 + 0.03, x_fender, ys - 0.025, ys, s * hw_low, s * (hw - 0.02)))  # sill shelf
+    out.append(box_span(mat, x0, x0 + 0.03, yf, ys, -min(hw_low, hw - P), min(hw_low, hw - P)))
     # corner posts and roof frame
     for px in (x0 + P / 2, x1 - P / 2):
         for s in (1, -1):
@@ -275,19 +276,21 @@ def tractor_cab(x0, x1, yf, yr, hw, ys, x_fender, hw_low, door_side=-1, mat=BODY
     for s in (1, -1):
         out.append(box_span('glass', x0 + P, x1 - P, ys, yr - 0.06, s * (hw - 0.018), s * (hw - 0.006)))
         # lower glass of the door / side panel ahead of the fender
-        out.append(box_span('glass', x_fender + 0.03, x1 - P, yf + 0.25, ys, s * (hw - 0.018), s * (hw - 0.006)))
-        out.append(box_span(mat, x_fender, x1 - P, yf, yf + 0.25, s * (hw - 0.025), s * hw))
-        out.append(box_span(FRAME, x_fender, x_fender + 0.03, yf + 0.25, ys, s * (hw - 0.03), s * (hw - 0.004)))
+        xl = max(x_fender, x0 + P)
+        out.append(box_span('glass', xl + 0.03, x1 - P, yf + 0.25, ys, s * (hw - 0.018), s * (hw - 0.006)))
+        out.append(box_span(mat, xl, x1 - P, yf, yf + 0.25, s * (hw - 0.025), s * hw))
+        out.append(box_span(FRAME, xl, xl + 0.03, yf + 0.25, ys, s * (hw - 0.03), s * (hw - 0.004)))
     # front panel below the windscreen
     lf = lower_front if lower_front is not None else 0.0
     if sill_front > yf:
         out.append(box_span(mat, x1 - 0.03, x1, yf, sill_front, -hw + P, hw - P))
     # door outline, hinges, handle (door side)
     zd = door_side * (hw + 0.002)
-    for a in (x_fender - 0.02, x1 - P - 0.01):
+    xd = door_x0 if door_x0 is not None else x_fender
+    for a in (xd - 0.02, x1 - P - 0.01):
         out.append(box_span('rubber_trim', a - 0.012, a + 0.012, yf + 0.02, yr - 0.07, zd - 0.006, zd + 0.006))
-    out.append(box_span('rubber_trim', x_fender - 0.02, x1 - P, yr - 0.08, yr - 0.07, zd - 0.006, zd + 0.006))
-    out.append(box_span('steel_dark', x_fender + 0.03, x_fender + 0.14, ys - 0.12, ys - 0.09, zd, zd + door_side * 0.03))
+    out.append(box_span('rubber_trim', xd - 0.02, x1 - P, yr - 0.08, yr - 0.07, zd - 0.006, zd + 0.006))
+    out.append(box_span('steel_dark', xd + 0.03, xd + 0.14, ys - 0.12, ys - 0.09, zd, zd + door_side * 0.03))
     for y in (yf + 0.4, yr - 0.4):
         out.append(cyl_between('steel_dark', (x1 - P / 2, y - 0.05, zd), (x1 - P / 2, y + 0.05, zd), 0.016, 8))
     # wipers, mirrors, lights, beacon, antenna
@@ -300,7 +303,7 @@ def tractor_cab(x0, x1, yf, yr, hw, ys, x_fender, hw_low, door_side=-1, mat=BODY
         out += lamp((x0 - 0.06, yr + 0.07, s * (hw - 0.12)), -1, 0.9)
         out.append(box('lamp_amber', 0.05, 0.05, 0.05, (x1 + 0.10, yr + 0.07, s * (hw - 0.32))))
     out += beacon((x0 + 0.22, yr + 0.13, -hw + 0.22))
-    out.append(cyl_between('steel_dark', (x0 + 0.22, yr + 0.13, hw - 0.25), (x0 + 0.22, yr + 0.55, hw - 0.25), 0.006, 6))
+    out.append(cyl_between('steel_dark', (x0 + 0.22, yr + 0.13, hw - 0.25), (x0 + 0.22, yr + 0.45, hw - 0.25), 0.006, 6))
     # interior: seat on a suspension base, dash pod with steering wheel, right console
     out.append(box_span(FRAME, sx - 0.18, sx + 0.18, yf + 0.012, yf + 0.30, -0.18, 0.18))
     out.append(box_span('seat_fabric', sx - 0.24, sx + 0.24, yf + 0.30, yf + 0.42, -0.25, 0.25))
@@ -413,3 +416,38 @@ def tractor_hood(x0, x1, yb, yt0, yt1, hw, mat=BODY, vents=None):
         for xs in (x0 + (x1 - x0) * 0.35, ):
             out.append(box_span(FRAME, xs, xs + 0.005, yb + 0.01, yt0 - 0.02, s * (hw - 0.001), s * (hw + 0.003)))
     return out
+
+
+def auger_flight(mat, p0, p1, r_in, r_out, pitch, hand=1, steps_per_turn=16, thick=0.006, phase=0.0):
+    """Helical auger flighting from p0 to p1 (two-sided strip of `thick`)."""
+    from meshkit import _basis_from, from_columns, length
+    L = length(sub(p1, p0))
+    turns = L / pitch
+    n = max(2, int(turns * steps_per_turn))
+    pos, nrm, idx = [], [], []
+    for side in (1, -1):
+        base = len(pos)
+        for i in range(n + 1):
+            t = i / n
+            a = phase + hand * 2 * math.pi * turns * t
+            y = L * t + side * thick / 2
+            for r in (r_in, r_out):
+                pos.append((r * math.cos(a), y, r * math.sin(a)))
+            # surface normal of the helicoid at mid radius
+            rm = (r_in + r_out) / 2
+            tang = (-math.sin(a) * hand * 2 * math.pi * rm, pitch, math.cos(a) * hand * 2 * math.pi * rm)
+            radial = (math.cos(a), 0, math.sin(a))
+            nn = norm(cross(radial, tang))
+            if nn[1] * side < 0:
+                nn = mul(nn, -1)
+            nrm += [nn, nn]
+        for i in range(n):
+            k = base + 2 * i
+            idx += [(k, k + 2, k + 3), (k, k + 3, k + 1)]
+    g = Geo(mat, pos, nrm, idx)
+    d, y, z = _basis_from(sub(p1, p0), (0, 0, 1))
+    m = from_columns(z, d, y)
+    if m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) \
+            + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]) < 0:
+        m = from_columns(y, d, z)
+    return g.transform(m, p0)
