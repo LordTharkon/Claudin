@@ -12,5 +12,6 @@ for script in ('build_utility_tractor.py', 'build_row_crop_tractor.py', 'build_c
                'build_sprayer.py', 'build_round_baler.py', 'build_grain_trailer.py', 'build_farm_props.py',
                # expansion pack
                'build_reversible_plough.py',
+               'build_disc_harrow.py',
                ):
     subprocess.run([sys.executable, os.path.join(here, script)], check=True, cwd=here)

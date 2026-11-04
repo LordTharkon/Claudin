@@ -500,10 +500,10 @@ def sheet(mat, grid, thick):
     return Geo(mat, pos, nr, idx)
 
 
-def dished_disc(r, dish, thick=0.006, segs=20, mat='steel', notched=False):
+def dished_disc(r, dish, thick=0.006, segs=20, mat='steel', rings=3):
     """Concave disc blade around +Y, concave side facing +Y (dish = depth at the centre)."""
     prof = []
-    n = 5
+    n = rings
     for i in range(n + 1):
         rr = r * i / n
         prof.append((rr, dish * (1 - (rr / r) ** 2)))
@@ -635,3 +635,16 @@ def tube_rail(points, r=0.021, mat=GALV, segs=8):
     out = [cyl_between(mat, a, b, r, segs, caps=False) for a, b in zip(points, points[1:])]
     out += [sphere(mat, r, segs, 4).at(p) for p in points[1:-1]]
     return out
+
+
+def align_y(geos, d, center):
+    """Turn geometry built around local +Y so +Y points along d, then move it to center."""
+    from meshkit import from_columns
+    y = norm(d)
+    ref = (0, 1, 0) if abs(y[1]) < 0.9 else (1, 0, 0)
+    x = norm(cross(y, ref))
+    z = cross(x, y)
+    m = from_columns(x, y, z)
+    one = not isinstance(geos, (list, tuple))
+    out = [g.transform(m, center) for g in ([geos] if one else geos)]
+    return out[0] if one else out
