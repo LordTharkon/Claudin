@@ -133,31 +133,24 @@ def place_wheel(geos, center, outward=1, steer=0.0):
 
 # --------------------------------------------------------- rubber tracks ---
 
-def rubber_track(circles, width, thick=0.045, lug_h=0.03, pitch=0.09, pattern='bar'):
-    """Continuous rubber track wrapped round (x, y, r) circles; the circles give the
-    inner (wheel) surface. Built in the x-y plane, centred on z = 0."""
-    loop = belt_path(circles)
-    per = sum(math.dist(loop[i], loop[i - 1]) for i in range(len(loop)))
-    samples, total = resample_loop(loop, max(8, round(per / pitch)))
-    p = total / len(samples)
-    seg = box('tyre_rubber', p * 1.04, thick, width).move(y=thick / 2)
-    guide = box('track_steel', p * 0.45, 0.045, 0.06).move(y=-0.02)
-    out = []
-    for i, ((px, py), tx, ty) in enumerate(samples):
-        M = from_columns((tx, ty, 0), (ty, -tx, 0), (0, 0, 1))
-        g = [seg, guide]
-        if pattern == 'bar':
-            if i % 2 == 0:
-                g.append(box('tyre_rubber', p * 0.7, lug_h, width * 0.96).move(y=thick + lug_h / 2))
-        elif pattern == 'zigzag':
-            sgn = 1 if i % 2 else -1
-            g.append(box('tyre_rubber', p * 0.55, lug_h, width * 0.55).rotate('y', sgn * 18).move(y=thick + lug_h / 2, z=sgn * width * 0.2))
-        elif pattern == 'block':
-            sgn = 1 if i % 2 else -1
-            g.append(box('tyre_rubber', p * 0.6, lug_h, width * 0.42).move(y=thick + lug_h / 2, z=sgn * width * 0.26))
-            g.append(box('tyre_rubber', p * 0.6, lug_h, width * 0.18).move(y=thick + lug_h / 2, z=-sgn * width * 0.38))
-        out += [q.transform(M, (px, py, 0)) for q in g]
-    return out
+def rubber_track_shoe(p, width, thick=0.045, lug_h=0.03, pattern='bar'):
+    """One segment of a rubber track belt, `p` long, with its tread lugs and steel guide lug,
+    in chain space (u = x along the belt, n = y outward, z across; pitch line at y = 0, the
+    wheel side of the belt). The tread repeats every segment so all segments can share a
+    mesh: 'bar' full-width bars, 'zigzag' a chevron of two angled lugs, 'block' two
+    staggered blocks."""
+    g = [box('tyre_rubber', p * 1.04, thick, width).move(y=thick / 2),
+         box('track_steel', p * 0.45, 0.045, 0.06).move(y=-0.02)]
+    y = thick + lug_h / 2
+    if pattern == 'bar':
+        g.append(box('tyre_rubber', p * 0.45, lug_h, width * 0.96).move(y=y))
+    elif pattern == 'zigzag':
+        for s in (1, -1):
+            g.append(box('tyre_rubber', p * 0.45, lug_h, width * 0.44).rotate('y', s * 18).move(y=y, z=s * width * 0.24))
+    elif pattern == 'block':
+        for s in (1, -1):
+            g.append(box('tyre_rubber', p * 0.47, lug_h, width * 0.42).move(x=-s * p * 0.22, y=y, z=s * width * 0.26))
+    return g
 
 
 def track_wheel(r, w, mat='track_steel', split=True):

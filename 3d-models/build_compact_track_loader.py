@@ -4,9 +4,10 @@ Key real-world dimensions used (metres):
   400 mm rubber tracks, width over tracks 1.96, 1.98 m bucket
   ground contact ~1.45, height to top of cab ~2.1, length with bucket on ground ~3.7
 """
-from meshkit import (MATERIALS, Model, box, box_between, box_span, cyl_between, cylinder, extrude, save)
+from meshkit import (MATERIALS, Model, box, box_between, box_span, cyl_between, cylinder, extrude)
 from dozer_parts import cab, lamp, louvres
-from vehicle_parts import loader_bucket, rubber_track, sprocket, track_wheel
+from track_kit import mirror_track_shoes, rubber_track_nodes, save_with_instanced_tracks
+from vehicle_parts import loader_bucket, sprocket, track_wheel
 
 ZT = 0.78
 TW = 0.40
@@ -21,7 +22,7 @@ ZA = 0.70  # loader arm plane
 
 def undercarriage(m):
     p = 'undercarriage_right'
-    m.add('track_right', [g.move(z=ZT) for g in rubber_track([SPROCKET, IDLER_F, IDLER_R], TW, TH, LUG, 0.08, 'block')])
+    rubber_track_nodes(m, 'track_right', None, [SPROCKET, IDLER_F, IDLER_R], ZT, TW, TH, LUG, 0.08, 'block')
     m.add(p, extrude('chassis_black', [(-0.62, 0.24), (0.72, 0.24), (0.80, 0.33), (0.70, 0.46), (-0.40, 0.56),
                                     (-0.66, 0.46)], 0.24).move(z=ZT))
     f, r_ = (IDLER_F[0], IDLER_F[1], ZT), (IDLER_R[0], IDLER_R[1], ZT)
@@ -35,6 +36,7 @@ def undercarriage(m):
     m.add(p, cylinder('chassis_black', 0.19, 0.20, 24).rotate('x', -90).at((SPROCKET[0], SPROCKET[1], ZT - 0.17)))
     m.add(p, box_span('chassis_black', -0.10, 0.10, 0.42, 0.62, ZT - 0.22, ZT - 0.10))  # torsion axle mount
     m.mirror('right', 'left')
+    mirror_track_shoes(m)
 
 
 def body(m):
@@ -113,4 +115,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'Construction/compact-track-loader', 'compact_track_loader')
+    save_with_instanced_tracks(build(), 'Construction/compact-track-loader', 'compact_track_loader')

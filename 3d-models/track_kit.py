@@ -29,7 +29,7 @@ import math
 import os
 import struct
 
-from meshkit import from_columns, resample_loop, save
+from meshkit import belt_path, from_columns, resample_loop, save
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -62,6 +62,16 @@ def track_loop_nodes(m, group, parent, loop, pitch, z, shoe_geos, count=None):
         m.add(node, [g.transform(M, (px, py, z)) for g in shoe_geos])
         m.track_shoes[name] = (group, track_shoe_frame(tx, ty))
     return total / n
+
+
+def rubber_track_nodes(m, group, parent, circles, z, width, thick, lug_h, pitch, pattern='bar'):
+    """Rubber track wrapped round (x, y, r) circles (the wheel side of the belt), as a group
+    of belt-segment shoes about `pitch` long (see `vehicle_parts.rubber_track_shoe`)."""
+    from vehicle_parts import rubber_track_shoe
+    loop = belt_path(circles)
+    n = max(8, round(loop_length(loop) / pitch))
+    p = loop_length(loop) / n
+    return track_loop_nodes(m, group, parent, loop, p, z, rubber_track_shoe(p, width, thick, lug_h, pattern), n)
 
 
 def mirror_track_shoes(m, src='right', dst='left'):
