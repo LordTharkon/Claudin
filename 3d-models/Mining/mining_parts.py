@@ -514,3 +514,70 @@ def save_with_instanced_tracks(model, slug):
         model.parts[name] = []
     save(model, slug)
     instance_track_shoes(os.path.join(HERE, slug, slug.replace('-', '_') + '.glb'), model, template)
+
+
+# ------------------------------------------------------- underground cab ---
+
+def underground_cab(x0, x1, z0, z1, floor_y, roof_y, enclosed=True, tub_y=None, mat='paint_yellow'):
+    """Low side-mounted operator compartment for underground machines, on the -z side of
+    the machine (z0 is the outer side, z1 the inner side). Four ROPS posts, a FOPS roof
+    with bars, a transverse seat facing +z with joystick consoles fore and aft, glazing at
+    the ends and on the inner side; the outer side is a glazed door (`enclosed`) or an
+    open entry with a mesh guard above the waist. Lamps fore and aft and a beacon."""
+    out = []
+    tub_y = floor_y - 0.30 if tub_y is None else tub_y
+    zc = (z0 + z1) / 2
+    out.append(box_span(mat, x0, x1, tub_y, floor_y, z0, z1))
+    out.append(box_span('chassis_black', x0 + 0.04, x1 - 0.04, floor_y + 0.003, floor_y + 0.02, z0 + 0.04, z1 - 0.04))
+    out.append(box_span(mat, x0, x1, floor_y, floor_y + 0.55, z1 - 0.05, z1))
+    for xa, xb in ((x0, x0 + 0.05), (x1 - 0.05, x1)):
+        out.append(box_span(mat, xa, xb, floor_y, floor_y + 0.45, z0, z1 - 0.05))
+    if enclosed:
+        out.append(box_span(mat, x0 + 0.05, x1 - 0.05, floor_y, floor_y + 0.45, z0, z0 + 0.05))
+    for x in (x0 + 0.06, x1 - 0.06):
+        for z in (z0 + 0.06, z1 - 0.06):
+            out.append(box(mat, 0.10, roof_y - floor_y, 0.10, (x, (floor_y + roof_y) / 2, z)))
+    out.append(box_span(mat, x0 - 0.04, x1 + 0.04, roof_y, roof_y + 0.07, z0 - 0.04, z1 + 0.04))
+    nb = 4
+    bars = [x0 + 0.20 + i * (x1 - x0 - 0.40) / (nb - 1) for i in range(nb)]
+    for x in bars:
+        out.append(box_span(mat, x - 0.03, x + 0.03, roof_y + 0.07, roof_y + 0.11, z0, z1))
+    out.append(box_span('chassis_black', x0 - 0.04, x1 + 0.04, roof_y - 0.02, roof_y - 0.002, z0 - 0.04, z1 + 0.04))
+    gy0, gy1 = floor_y + 0.47, roof_y - 0.04
+    out.append(box_span('glass', x1 - 0.035, x1 - 0.025, gy0, gy1, z0 + 0.11, z1 - 0.11))
+    out.append(box_span('glass', x0 + 0.025, x0 + 0.035, gy0, gy1, z0 + 0.11, z1 - 0.11))
+    out.append(box_span('glass', x0 + 0.11, x1 - 0.11, floor_y + 0.57, gy1, z1 - 0.035, z1 - 0.025))
+    if enclosed:
+        out.append(box_span('glass', x0 + 0.11, x1 - 0.11, gy0, gy1, z0 + 0.025, z0 + 0.035))
+        for a in (x0 + 0.13, x1 - 0.13):
+            out.append(box_span('rubber_trim', a - 0.012, a + 0.012, floor_y - 0.20, gy1, z0 - 0.006, z0 + 0.002))
+        out.append(box_span('steel_dark', x1 - 0.32, x1 - 0.20, floor_y + 0.30, floor_y + 0.34, z0 - 0.03, z0))
+    else:
+        for i in range(5):
+            y = floor_y + 0.95 + i * 0.12
+            out.append(box_span('steel_dark', x0 + 0.11, x1 - 0.11, y - 0.012, y + 0.012, z0 + 0.02, z0 + 0.04))
+        for i in range(1, 6):
+            x = x0 + 0.11 + i * (x1 - x0 - 0.22) / 6
+            out.append(box_span('steel_dark', x - 0.012, x + 0.012, floor_y + 0.88, roof_y - 0.02, z0 + 0.04, z0 + 0.06))
+    sx = (x0 + x1) / 2
+    out.append(box_span('chassis_black', sx - 0.20, sx + 0.20, floor_y + 0.02, floor_y + 0.30, z0 + 0.18, z0 + 0.52))
+    out.append(box_span('seat_fabric', sx - 0.25, sx + 0.25, floor_y + 0.30, floor_y + 0.40, z0 + 0.14, z0 + 0.60))
+    out.append(box('seat_fabric', 0.48, 0.58, 0.10, (sx, floor_y + 0.72, z0 + 0.15)).rotate('x', -8, (sx, floor_y + 0.40, z0 + 0.15)))
+    out.append(box('seat_fabric', 0.28, 0.14, 0.08, (sx, floor_y + 1.10, z0 + 0.12)))
+    for s in (1, -1):
+        cx = sx + s * 0.40
+        out.append(box_span('chassis_black', cx - 0.08, cx + 0.08, floor_y + 0.02, floor_y + 0.52, z0 + 0.20, z0 + 0.55))
+        out.append(cyl_between('steel_dark', (cx, floor_y + 0.52, z0 + 0.48), (cx, floor_y + 0.64, z0 + 0.48), 0.012, 8))
+        out.append(sphere('plastic_black', 0.032, 10, 6).at((cx, floor_y + 0.67, z0 + 0.48)))
+        out.append(box('chassis_black', 0.08, 0.18, 0.06, (sx + s * 0.12, floor_y + 0.12, z1 - 0.20)).rotate('x', 30, (sx, floor_y, z1 - 0.20)))
+    out.append(box_span('plastic_black', x0 + 0.20, x1 - 0.20, floor_y + 0.55, floor_y + 0.60, z1 - 0.20, z1 - 0.05))
+    out.append(box('plastic_black', 0.30, 0.18, 0.02, (sx, floor_y + 0.70, z1 - 0.10)).rotate('x', 20, (sx, floor_y + 0.60, z1 - 0.10)))
+    for x in (x0 + 0.15, x1 - 0.15):
+        out += polyline_tube('chrome', [(x, floor_y + 0.40, z0 - 0.002), (x, floor_y + 0.40, z0 - 0.09),
+                                        (x, roof_y - 0.40, z0 - 0.09), (x, roof_y - 0.40, z0 - 0.002)], 0.016, 8)
+    out += lamp((x1 + 0.08, roof_y - 0.06, zc), 1, 0.7)
+    out += lamp((x0 - 0.08, roof_y - 0.06, zc), -1, 0.7)
+    out += beacon(((bars[0] + bars[1]) / 2, roof_y + 0.07, zc), 0.05)
+    out.append(box('glass', 0.01, 0.12, 0.18, (x1 + 0.10, roof_y - 0.25, z0 - 0.06)))
+    out.append(cyl_between('steel_dark', (x1 - 0.05, roof_y - 0.20, z0), (x1 + 0.09, roof_y - 0.25, z0 - 0.06), 0.01, 6))
+    return out
