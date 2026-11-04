@@ -240,8 +240,8 @@ def guardrail(pts, deck_y, h=1.07, kick=0.12, mat='paint_yellow', post_gap=1.6, 
             t = i / n
             x, z = xa + (xb - xa) * t, za + (zb - za) * t
             out.append(cyl_between(mat, (x, deck_y, z), (x, deck_y + h, z), 0.022, 8))
-        # kickplate
-        dx, dz = (xb - xa) / L, (zb - za) / L
+        if kick <= 0:
+            continue
         ox, oz = side_out if side_out else (0.0, 0.0)
         out.append(box_between(mat, (xa + ox, deck_y + kick / 2, za + oz), (xb + ox, deck_y + kick / 2, zb + oz), 0.008, kick))
     return out
