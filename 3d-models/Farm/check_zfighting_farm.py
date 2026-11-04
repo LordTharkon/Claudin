@@ -11,7 +11,10 @@ import farm_parts  # noqa: F401  (puts the shared helpers on sys.path)
 from check_zfighting import report
 
 BUILDERS = ['build_utility_tractor', 'build_row_crop_tractor', 'build_combine_harvester',
-            'build_sprayer', 'build_round_baler', 'build_grain_trailer', 'build_farm_props']
+            'build_sprayer', 'build_round_baler', 'build_grain_trailer', 'build_farm_props',
+            # expansion pack
+            'build_reversible_plough',
+            ]
 
 
 def main():

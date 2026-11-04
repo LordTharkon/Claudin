@@ -451,3 +451,187 @@ def auger_flight(mat, p0, p1, r_in, r_out, pitch, hand=1, steps_per_turn=16, thi
             + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]) < 0:
         m = from_columns(y, d, z)
     return g.transform(m, p0)
+
+
+# ------------------------------------------------- expansion pack helpers ---
+
+GALV = 'steel_galvanized'
+
+
+def sheet(mat, grid, thick):
+    """Thin curved plate from a grid of mid-surface points grid[i][j] (rows i, columns j):
+    both faces offset by +/- thick/2 along the surface normal, plus the four edge strips.
+    Used for mouldboards, skims, shields and dished panels."""
+    ni, nj = len(grid), len(grid[0])
+
+    def nrm_at(i, j):
+        a, b = grid[min(i + 1, ni - 1)][j], grid[max(i - 1, 0)][j]
+        c, d = grid[i][min(j + 1, nj - 1)], grid[i][max(j - 1, 0)]
+        return norm(cross(sub(a, b), sub(c, d)))
+    N = [[nrm_at(i, j) for j in range(nj)] for i in range(ni)]
+    pos, nr, idx = [], [], []
+    for sg in (1, -1):
+        base = len(pos)
+        for i in range(ni):
+            for j in range(nj):
+                pos.append(add(grid[i][j], mul(N[i][j], sg * thick / 2)))
+                nr.append(mul(N[i][j], sg))
+        for i in range(ni - 1):
+            for j in range(nj - 1):
+                k = base + i * nj + j
+                idx += [(k, k + 1, k + nj + 1), (k, k + nj + 1, k + nj)]
+    cen = mul(grid[ni // 2][nj // 2], 1.0)
+    border = ([(0, j) for j in range(nj)], [(ni - 1, j) for j in range(nj)],
+              [(i, 0) for i in range(ni)], [(i, nj - 1) for i in range(ni)])
+    for line in border:
+        for (i0, j0), (i1, j1) in zip(line, line[1:]):
+            p0, p1 = grid[i0][j0], grid[i1][j1]
+            n0, n1 = N[i0][j0], N[i1][j1]
+            mid = mul(add(p0, p1), 0.5)
+            o = norm(cross(sub(p1, p0), add(n0, n1)))
+            ii, jj = min(max(i0, 1), ni - 2), min(max(j0, 1), nj - 2)
+            if dot(o, sub(mid, grid[ii][jj] if ni > 2 and nj > 2 else cen)) < 0:
+                o = mul(o, -1)
+            k = len(pos)
+            pos += [add(p0, mul(n0, thick / 2)), add(p1, mul(n1, thick / 2)),
+                    add(p1, mul(n1, -thick / 2)), add(p0, mul(n0, -thick / 2))]
+            nr += [o] * 4
+            idx += [(k, k + 1, k + 2), (k, k + 2, k + 3)]
+    return Geo(mat, pos, nr, idx)
+
+
+def dished_disc(r, dish, thick=0.006, segs=20, mat='steel', notched=False):
+    """Concave disc blade around +Y, concave side facing +Y (dish = depth at the centre)."""
+    prof = []
+    n = 5
+    for i in range(n + 1):
+        rr = r * i / n
+        prof.append((rr, dish * (1 - (rr / r) ** 2)))
+    top = [(max(rr, 0.0), y) for rr, y in prof]
+    bot = [(rr, y - thick) for rr, y in reversed(prof)]
+    g = lathe(mat, top + bot, segs)
+    return g
+
+
+def board_poly(mat, poly, axis, plane, depth=0.006):
+    """Flat panel from a 2D polygon. axis 'x': polygon in (z, y), panel normal along x at x=plane.
+    axis 'z': polygon in (x, y), normal along z at z=plane."""
+    g = extrude(mat, poly, depth)
+    if axis == 'z':
+        return g.move(z=plane)
+    return g.rotate('y', -90).move(x=plane)
+
+
+def _clip(poly, edge_fn):
+    out = []
+    for i in range(len(poly)):
+        a, b = poly[i - 1], poly[i]
+        ia, ib = edge_fn(a) >= 0, edge_fn(b) >= 0
+        if ib:
+            if not ia:
+                fa, fb = edge_fn(a), edge_fn(b)
+                t = fa / (fa - fb)
+                out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+            out.append(b)
+        elif ia:
+            fa, fb = edge_fn(a), edge_fn(b)
+            t = fa / (fa - fb)
+            out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+    return out
+
+
+def hazard_board(center, w, h, facing=-1, axis='x', stripes=4, base=None):
+    """Blank red/white diagonal-striped warning board on a backing plate. The board faces
+    +/-x (axis='x', width along z) or +/-z (axis='z', width along x)."""
+    cx, cy, cz = center
+    out = []
+    t = 0.012
+    if axis == 'x':
+        out.append(box(base or FRAME, t, h + 0.03, w + 0.03, (cx - facing * t / 2, cy, cz)))
+    else:
+        out.append(box(base or FRAME, w + 0.03, h + 0.03, t, (cx, cy, cz - facing * t / 2)))
+    rect = [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)]
+    pitch = (w + h) / (2 * stripes)
+    k = 0
+    a = -w / 2 - h
+    while a < w / 2 + h:
+        b = a + pitch
+        poly = _clip(_clip(rect, lambda p, a=a: (p[0] + p[1]) - a), lambda p, b=b: b - (p[0] + p[1]))
+        if len(poly) >= 3:
+            mat = 'paint_red' if k % 2 == 0 else 'paint_white'
+            g = extrude(mat, poly, 0.006)
+            if axis == 'x':
+                g = g.rotate('y', 90 if facing > 0 else -90).at((cx + facing * 0.003, cy, cz))
+            else:
+                g = (g if facing > 0 else g.rotate('y', 180)).at((cx, cy, cz + facing * 0.003))
+            out.append(g)
+        a = b
+        k += 1
+    return out
+
+
+def smv_panel(center, size=0.36, facing=-1):
+    """Blank slow-moving-vehicle triangle (orange centre, red border) facing -x by default."""
+    cx, cy, cz = center
+    tri = lambda s: [(-s / 2, -s * 0.29), (s / 2, -s * 0.29), (0, s * 0.577)]
+    rot = -90 if facing < 0 else 90
+    out = [extrude(FRAME, tri(size + 0.02), 0.01).rotate('y', rot).at((cx - facing * 0.005, cy, cz)),
+           extrude('lamp_red', tri(size), 0.004).rotate('y', rot).at((cx + facing * 0.002, cy, cz)),
+           extrude('paint_orange', tri(size * 0.62), 0.004).rotate('y', rot).at((cx + facing * 0.006, cy, cz))]
+    return out
+
+
+def rear_light(center, facing=-1, axis='x', bracket=True):
+    """Rear combination lamp: housing with red tail, amber indicator and a red reflector."""
+    x, y, z = center
+    out = []
+    if axis == 'x':
+        out.append(box(FRAME, 0.04, 0.15, 0.22, center))
+        f = x + facing * 0.023
+        out += [box('lamp_red', 0.006, 0.08, 0.08, (f, y + 0.012, z - 0.055)),
+                box('lamp_amber', 0.006, 0.08, 0.06, (f, y + 0.012, z + 0.035)),
+                box('lamp_red', 0.006, 0.024, 0.18, (f, y - 0.052, z - 0.01))]
+    else:
+        out.append(box(FRAME, 0.22, 0.12, 0.04, center))
+        f = z + facing * 0.023
+        out += [box('lamp_red', 0.08, 0.08, 0.006, (x - 0.055, y, f)),
+                box('lamp_amber', 0.06, 0.08, 0.006, (x + 0.035, y, f))]
+    return out
+
+
+def reflector(center, facing=-1, axis='x', mat='lamp_red', s=0.07):
+    x, y, z = center
+    if axis == 'x':
+        return [box(mat, 0.006, s, s, (x + facing * 0.003, y, z))]
+    return [box(mat, s, s, 0.006, (x, y, z + facing * 0.003))]
+
+
+def parking_jack(x, z, y0, y1, crank=1, foot=0.16):
+    """Drop-leg parking jack standing on the ground at y0 with its top at y1."""
+    out = [cyl_between('steel_dark', (x, y0 + 0.03, z), (x, y1 - 0.30, z), 0.03, 12),
+           cyl_between(FRAME, (x, y1 - 0.42, z), (x, y1, z), 0.045, 12),
+           cyl_between('steel_dark', (x, y1, z), (x, y1 + 0.04, z), 0.03, 10),
+           box('steel_dark', foot, 0.025, foot, (x, y0 + 0.0125, z)),
+           cyl_between('steel', (x, y1 + 0.02, z), (x, y1 + 0.02, z + crank * 0.14), 0.01, 6),
+           cyl_between('steel', (x, y1 + 0.02, z + crank * 0.14), (x + 0.10, y1 + 0.02, z + crank * 0.14), 0.01, 6),
+           cylinder('plastic_black', 0.016, 0.07, 8).rotate('z', 90).at((x + 0.13, y1 + 0.02, z + crank * 0.14))]
+    return out
+
+
+def hitch_eye(center, r_in=0.035, r_out=0.07, mat='steel'):
+    """Horizontal drawbar ring (pin hole vertical)."""
+    return [lathe(mat, [(r_in, -0.025), (r_out, -0.025), (r_out, 0.025), (r_in, 0.025), (r_in, -0.025)], 16).at(center)]
+
+
+def coupling(center, color='lamp_red'):
+    """Hydraulic quick coupler with dust cap colour band, axis along x."""
+    x, y, z = center
+    return [cyl_between('steel', (x - 0.04, y, z), (x + 0.04, y, z), 0.014, 8),
+            cyl_between(color, (x + 0.04, y, z), (x + 0.07, y, z), 0.02, 8)]
+
+
+def tube_rail(points, r=0.021, mat=GALV, segs=8):
+    """Bent tube without joint spheres on straight runs (galvanised rails, hoops)."""
+    out = [cyl_between(mat, a, b, r, segs, caps=False) for a, b in zip(points, points[1:])]
+    out += [sphere(mat, r, segs, 4).at(p) for p in points[1:-1]]
+    return out

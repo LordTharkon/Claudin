@@ -24,6 +24,19 @@ numbers; generic designs at typical class dimensions.
 | **Tipping grain trailer** (two-axle, ~14 t) | `grain-trailer/grain_trailer.glb` | 7.65 × 2.50 × 3.05 m | 22.4k | `body_tilt` on rear hinges with front `hoist_cylinder`; `tailgate_tilt` (top-hinged) with `grain_chute_slide` hatch; turntable front axle `front_axle_steer` carrying `drawbar_tilt` (A-frame, stand, brake/hydraulic lines); wheels `_spin`. 6.0 × 2.4 m body, 1.0 m sides + 0.5 m extensions |
 | **Farm props** | `farm-props/farm_props.glb` | 20.9 × 6.9 × 8.1 m (layout) | 16.2k | Separate root nodes: `round_bale_stack` (3 + 2), `small_square_bale_stack` (4 interlocked layers of 0.90 × 0.46 × 0.36 bales with twine), `round_bale`, `grain_bin` (6 m dia, 6 m eave, corrugated, stiffeners, caged ladder, roof ladder, peak vent, door, aeration fan, eave manway `hatch_rotate` hinged on its upper edge about X), `field_gate` (3.6 m galvanised gate on timber posts, `gate_rotate` about Y on the hinge pins, latch) |
 
+## Expansion pack: implements, farm vehicles and yard props
+
+Implements are sized for the **row-crop tractor**. Its hitch in exported (centred) coordinates:
+lower-link ball ends 1.04 m apart (z = ±0.52) at 0.62 m above the ground and x = −3.07, top-link
+end 1.18 m above the ground (0.56 m mast height), drawbar pin 0.51 m above the ground at x = −2.67.
+Mounted implements put their lower hitch pins and top-link pin on those points; trailed ones put
+their hitch eye at 0.51 m.
+
+| Model | File | Size (L × W × H) | Tris | Matching tractor / moving parts / notes |
+|---|---|---|---|---|
+| **Reversible mounted plough** (5 furrow, 16 in) | `reversible-plough/reversible_plough.glb` | 7.26 × 2.94 × 1.71 m | 14.1k | Row-crop tractor, Cat III 3-point (lower pins 1.04 m apart at 0.62 m, top-link pin at 1.18 m on the headstock front face). `headstock` (fixed, parking stand, warning boards, hydraulic couplers) → `beam_rotate` (turnover 180° about the x-axis shaft at 0.86 m) carrying 5 lower + 5 upper bodies (mouldboard, share, shin, landside, heel, frog, leg with shear-bolt clamp, skim coulter), `turnover_cylinder` with hoses, `depth_wheel_arm_tilt` → `depth_wheel_spin`, depth spindle, rear lamp board and side reflectors. Rest pose: working position on the shares and the parking stand, bottom bodies throwing right |
+<!-- expansion rows -->
+
 Heights are to the cab roof unless noted; antennas and exhausts add a little. Triangle budget:
 under 60k per machine and 20k for the props file (`save_farm` asserts it on every build).
 
