@@ -18,6 +18,7 @@ BUILDERS = ['build_utility_tractor', 'build_row_crop_tractor', 'build_combine_ha
             'build_seed_drill',
             'build_mower_conditioner',
             'build_telehandler',
+            'build_stock_trailer',
             ]
 
 
