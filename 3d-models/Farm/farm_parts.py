@@ -381,3 +381,35 @@ def three_point_hitch(m, parent, xl, yl, zl, link_len, yb, zb, rock, lift_len, t
     for p in (top0, top1):
         m.add(t, cyl_between('steel', add(p, (0, 0, -0.05)), add(p, (0, 0, 0.05)), 0.03, 10))
     return h
+
+
+def tractor_hood(x0, x1, yb, yt0, yt1, hw, mat=BODY, vents=None):
+    """Engine hood from the cab (x0) to the nose (x1): side profile with a rounded
+    nose, raised crown, front grille with bars, headlights and indicators, side vents.
+    yt0/yt1: hood top at the cab / nose end."""
+    out = []
+    n = 0.10
+    prof = [(x0, yb), (x1 - n, yb), (x1, yb + n), (x1, yt1 - n), (x1 - n, yt1), (x0, yt0)]
+    out.append(extrude(mat, prof, 2 * hw))
+    out.append(extrude(mat, [(x0, yt0 - 0.02), (x1 - n - 0.02, yt1 - 0.02), (x1 - n - 0.02, yt1 + 0.025), (x0, yt0 + 0.035)],
+                       2 * hw - 0.14))
+    gy0, gy1 = yb + n, yt1 - n
+    gz = hw - 0.08
+    out.append(box_span('steel_dark', x1 - 0.005, x1 + 0.005, gy0, gy1 - 0.10, -gz, gz))
+    y = gy0 + 0.02
+    while y < gy1 - 0.12:
+        out.append(box_span(FRAME, x1 + 0.002, x1 + 0.015, y, y + 0.022, -gz + 0.01, gz - 0.01))
+        y += 0.05
+    for s in (1, -1):
+        out.append(box_span(FRAME, x1 - 0.05, x1 + 0.02, gy1 - 0.09, gy1, s * 0.06, s * (hw - 0.04)))
+        out.append(box_span('lamp_lens', x1 + 0.02, x1 + 0.026, gy1 - 0.08, gy1 - 0.01, s * 0.08, s * (hw - 0.06)))
+        out.append(box_span('lamp_amber', x1 - n - 0.04, x1 - n + 0.02, yt1 - 0.01, yt1 + 0.02, s * (hw - 0.10), s * (hw - 0.03)))
+        vx0, vx1 = vents or (x1 - 0.75, x1 - 0.20)
+        out.append(box_span('steel_dark', vx0, vx1, yb + 0.08, gy1 - 0.05, s * hw, s * (hw + 0.004)))
+        yy = yb + 0.11
+        while yy < gy1 - 0.08:
+            out.append(box_span(FRAME, vx0 + 0.02, vx1 - 0.02, yy, yy + 0.02, s * (hw + 0.004), s * (hw + 0.012)))
+            yy += 0.045
+        for xs in (x0 + (x1 - x0) * 0.35, ):
+            out.append(box_span(FRAME, xs, xs + 0.005, yb + 0.01, yt0 - 0.02, s * (hw - 0.001), s * (hw + 0.003)))
+    return out
