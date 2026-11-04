@@ -44,11 +44,56 @@ manufacturer names, model numbers or logos.
 
 ![Crawler dozer](Construction/crawler-dozer/preview.png)
 ![Wheel dozer](Construction/wheel-dozer/preview.png)
+![Compact track loader](Construction/compact-track-loader/preview.png)
+![Mini excavator](Construction/mini-excavator/preview.png)
+![Pickup truck](Construction/pickup-truck/preview.png)
+![Dually pickup truck](Construction/dually-pickup-truck/preview.png)
+
+### Triangle counts
+
+"Drawn" is what a viewer renders; "unique" is what the file stores. They differ only for the
+three tracked machines, whose track shoes reuse one mesh per side (see
+[Track structure](#track-structure)).
+
+| Model | Drawn | Unique |
+|---|---:|---:|
+| Crawler dozer | 71.6k | 38.2k |
+| Dually pickup truck | 58.7k (was 123.8k) | 58.7k |
+| Pickup truck | 55.0k (was 120.9k) | 55.0k |
+| Articulated dump truck | 43.8k | 43.8k |
+| Backhoe loader | 39.3k | 39.3k |
+| Wheel dozer | 38.1k | 38.1k |
+| Wheel tractor scraper | 37.6k | 37.6k |
+| Mini excavator | 26.1k | 20.0k |
+| Sandbag stack | 24.6k | 24.6k |
+| Light tower | 24.3k | 24.3k |
+| Compact track loader | 23.2k | 17.8k |
+| Diesel generator | 22.1k | 22.1k |
+| Material hoist | 13.6k | 13.6k |
+| Shipping container 20 ft | 13.5k | 13.5k |
+| Site office trailer | 12.7k | 12.7k |
+| Fuel tank 1000 L | 9.3k | 9.3k |
+| Rubble and gravel piles | 5.7k | 5.7k |
+| Stair tower | 5.4k | 5.4k |
+| Survey tripod and stake | 3.2k | 3.2k |
+| Skip bin and bulk bag | 2.8k | 2.8k |
+| Concrete pipes | 2.4k | 2.4k |
+| Rebar bundle | 1.7k | 1.7k |
+| Lumber stack | 1.6k | 1.6k |
+| Site hoarding | 0.9k | 0.9k |
+
+The pickups were slimmed without changing their shape, rig, materials or UV rules.
+Rounded trim boxes now use 1–4 corner segments depending on their radius (1 mm chord
+error) instead of always 4. Loft rings sit 10–12 cm apart only where the body section changes
+(fender flares, wheel arches, hood, windshield, dually pods) and are sparse along the
+constant cab and bed sections. Tyres have 36 segments and rims 32 (about 1.5 mm chord error).
+Faces that can't be seen were dropped: the buried backs of the grille blocks and the hub
+face of the inner rear duals.
 
 ## What's modelled
 
-**Crawler dozer:** individual track shoes with grousers, chain links, bushings and shoe bolts
-running a correct belt path round the idler and sprocket; 7 double-flange bottom rollers and
+**Crawler dozer:** individual track shoes (42 per side, separate nodes) with grousers, chain
+links, bushings and shoe bolts running a correct belt path round the idler and sprocket; 7 double-flange bottom rollers and
 2 carrier rollers per side; toothed drive sprockets and final drives; track frames, roller
 guards, recoil housings, equaliser bar and pivot shaft; engine hood with side louvres, front
 radiator guard, exhaust and air pre-cleaner; semi-U blade with curved moldboard, cutting edge,
@@ -74,8 +119,8 @@ exhaust and pre-cleaner; straight blade, push arms, lift and tilt cylinders; ROP
 ### Rigging
 
 Every node and mesh has a descriptive name (`cab`, `frame`, `boom_tilt`, …). Moving parts
-carry a suffix and their node origin sits on the real pivot; node rotations are identity in
-the rest pose.
+carry a suffix and their node origin sits on the real pivot. Node rotations are identity in
+the rest pose; the only exception is track shoes (see below).
 
 | Suffix | Motion | Used for |
 |---|---|---|
@@ -88,6 +133,48 @@ the rest pose.
 Each hydraulic cylinder is `<name>_rotate` (barrel, origin at its base pin, child of the part
 it is mounted on) with a child `<name>_rod_slide` (origin at the rod-eye pin). Parts that don't
 move have no suffix.
+
+### Track structure
+
+The crawler dozer, compact track loader and mini excavator have tracks made of separate shoe
+nodes, so a viewer can run them:
+
+* `track_left` and `track_right` are group nodes with no mesh. Their origin lies in the
+  track's centre plane (z = ±the track's half gauge). Their children are the shoes, in order
+  round the loop: `track_right_shoe_00`, `track_right_shoe_01`, … (same for the left).
+* Both sides are numbered in the same travel direction: counter-clockwise seen from +Z. Shoe
+  00 is at the rearmost point of the loop (the back of the sprocket, level with its centre).
+  The sequence runs down round the sprocket, forward along the ground run, up round the front
+  idler and back along the top.
+* Each shoe node's origin sits on the chain pitch line, which is the belt path round the
+  idler and sprocket pitch circles (plus the rear idler on the compact track loader). Its rotation follows the loop: local +X along the
+  tangent (the travel direction), local +Y inward toward the rollers, local +Z = world +Z.
+  Shoes on the bottom run have identity rotation.
+* Shoes are evenly spaced: the loop length divided by the shoe count, which is the pitch
+  rounded to a whole number of shoes (distances measured along the loop). Moving shoe N to
+  shoe N+1's rest transform (translation and rotation) runs the track forward by one shoe,
+  and looping that runs it continuously.
+* Every shoe on a side reuses one glTF mesh, `track_<side>_shoe`. The shoes have no rig suffix.
+  Rollers, carrier rollers, idlers and sprockets are still `_spin` nodes with their origins on
+  their centres.
+
+| Model | Shoes per side | Spacing | Shoe |
+|---|---:|---:|---|
+| Crawler dozer | 42 | 0.2019 m (203 mm chain pitch) | steel shoe: plate, main and half grousers, links, pin, bushing and bolts (`track_steel`) |
+| Compact track loader | 57 | 0.0796 m | rubber belt segment with steel guide lug and two staggered tread blocks |
+| Mini excavator | 64 | 0.0748 m | rubber belt segment with steel guide lug and a chevron of two angled lugs |
+
+On the rubber tracks each belt segment carries its own lugs, so the tread repeats every
+segment. The compact track loader's blocks alternated sides every two segments before;
+now each segment has a staggered pair. The mini excavator's alternating zigzag lug is now a
+chevron.
+
+The shoes are written by `track_kit.py` (`track_loop_nodes`, `rubber_track_nodes`,
+`mirror_track_shoes`, `save_with_instanced_tracks`), generalised from the Mining dozer.
+The model is finalised with every shoe in place, so centring and bounds include all of them.
+Only the first shoe of each side is written with geometry. The `.glb` is then rewritten so
+that shoe's mesh is moved into its local frame and every shoe node on that side points to it
+with its rotation.
 
 ### Materials, textures and UVs
 
@@ -137,8 +224,10 @@ python3 3d-models/build_all.py
 * `dozer_parts.py` — shared assemblies (blade, cab, lamps, louvres, rails, exhaust)
 * `bodykit.py` — smooth bodywork: lofted cross-sections, rounded boxes, flush glass/trim panels
 * `vehicle_parts.py` — tyres (earthmover, industrial, all-terrain, highway), rims, rubber
-  tracks, excavator and loader buckets, steering wheel
+  track belt segments, excavator and loader buckets, steering wheel
 * `site_parts.py` — corrugated sheet, rubble chunks, mounds, screw jacks, mesh panels for site props
+* `track_kit.py` — tracks as groups of evenly spaced shoe nodes that share one mesh per side
+  (see [Track structure](#track-structure))
 * `build_*.py` — one script per machine (`build_pickup_trucks.py` writes both pickups;
   `build_site_cabins.py`, `build_site_equipment.py`, `build_site_materials.py` and
   `build_site_structures.py` each write several site models)
@@ -146,4 +235,9 @@ python3 3d-models/build_all.py
   different materials) and exits non-zero if it finds any: `python3 3d-models/check_zfighting.py`
 * `validate_glb.py` — reads the generated `.glb` files and checks them against the model-pack
   rules above (format, orientation and origin, UVs, materials and textures, node naming and
-  rig suffixes), exiting non-zero on any failure: `python3 3d-models/validate_glb.py`
+  rig suffixes), exiting non-zero on any failure: `python3 3d-models/validate_glb.py`. It
+  allows a unit-quaternion rotation only on `track_<side>_shoe_NN` nodes, computes bounds
+  through node rotations, and reports triangles drawn and unique.
+* `preview/render_previews.js` — renders `Construction/<slug>/preview.png` with three.js in
+  headless Chromium (grey ground with a 1 m grid and a 1.8 m reference figure):
+  `cd 3d-models/preview && npm install three@0.160.0 && node render_previews.js [filter]`
