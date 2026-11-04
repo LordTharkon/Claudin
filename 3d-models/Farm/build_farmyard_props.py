@@ -212,7 +212,7 @@ def silage(m, x0, z0):
     for k, (name, mat) in enumerate((('wrapped_bale_black', 'plastic_black'), ('wrapped_bale_white', 'paint_white'),
                                      ('wrapped_bale_green', 'paint_green'))):
         n = m.node(name)
-        x = x0 + 0.7 + 1.45 * k
+        x = x0 + 0.7 + 1.56 * k
         m.add(n, wrapped_bale((x, 0.62, z0), mat))
         if k == 0:     # one stood on its end on top of the black bale stack
             m.add(n, wrapped_bale((x, 0.62, z0 + 1.32), mat))
@@ -273,7 +273,7 @@ def hand_tools(m, x, z):
         zz = z - 0.09 + 0.06 * k
         m.add(n, cyl_between('steel', (x + 1.24, 0.015, zz), (x + 1.55, 0.04, zz), 0.005, 5))
     s = m.node('shovel')
-    zs = z + 0.45
+    zs = z + 0.55
     m.add(s, cyl_between(TIMBER, (x, 0.02, zs), (x + 1.10, 0.02, zs), 0.016, 8))
     m.add(s, box_span('plastic_black', x - 0.06, x + 0.0, 0.01, 0.04, zs - 0.07, zs + 0.07))
     m.add(s, cyl_between('steel', (x + 1.08, 0.02, zs), (x + 1.20, 0.02, zs), 0.022, 8))
@@ -349,8 +349,8 @@ def build():
     x = water_tank(m, x + 1.0, zA)
     jerry_can(m, x, zA)
     x = silage(m, 0.0, zB)
-    x = wheelbarrow(m, x, zB)
-    x = hand_tools(m, x, zB - 0.3)
+    x = wheelbarrow(m, x + 1.0, zB)
+    x = hand_tools(m, x + 0.1, zB - 0.3)
     farm_entrance(m, x + 1.6, zB)
     return m
 
