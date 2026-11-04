@@ -6,9 +6,10 @@ Key real-world dimensions used (metres):
 """
 import math
 
-from meshkit import (MATERIALS, Model, box, box_between, box_span, cyl_between, cylinder, extrude, save)
+from meshkit import (MATERIALS, Model, box, box_between, box_span, cyl_between, cylinder, extrude)
 from dozer_parts import blade, cab, lamp, louvres
-from vehicle_parts import dig_bucket, hose, rubber_track, sprocket, track_wheel
+from track_kit import mirror_track_shoes, rubber_track_nodes, save_with_instanced_tracks
+from vehicle_parts import dig_bucket, hose, sprocket, track_wheel
 
 ZT = 0.725
 TRACK_W = 0.30
@@ -26,8 +27,7 @@ def plan(mat, pts, y0, y1):
 
 def undercarriage(m):
     p = m.node('undercarriage_right', 'undercarriage')
-    m.node('track_right', 'undercarriage')
-    m.add('track_right', [g.move(z=ZT) for g in rubber_track([IDLER, SPROCKET], TRACK_W, T_THICK, LUG, 0.075, 'zigzag')])
+    rubber_track_nodes(m, 'track_right', 'undercarriage', [IDLER, SPROCKET], ZT, TRACK_W, T_THICK, LUG, 0.075, 'zigzag')
     m.add(p, extrude('chassis_black', [(-0.62, 0.22), (0.62, 0.22), (0.70, 0.36), (0.60, 0.50), (-0.60, 0.50),
                                     (-0.68, 0.36)], 0.22).move(z=ZT))
     m.add(m.node('idler_right_spin', p, (IDLER[0], IDLER[1], ZT)), track_wheel(0.24, 0.26).at((IDLER[0], IDLER[1], ZT)))
@@ -39,6 +39,7 @@ def undercarriage(m):
     top = (0.0, IDLER[1] + 0.26 - 0.05, ZT)
     m.add(m.node('carrier_roller_right_spin', p, top), track_wheel(0.05, 0.12, split=False).at(top))
     m.mirror('right', 'left')
+    mirror_track_shoes(m)
     q = 'undercarriage'
     m.add(q, box_span('chassis_black', -0.45, 0.45, 0.26, 0.48, -0.62, 0.62))
     m.add(q, cylinder('chassis_black', 0.45, 0.08, 40).at((0, 0.52, 0)))
@@ -138,4 +139,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'Construction/mini-excavator', 'mini_excavator')
+    save_with_instanced_tracks(build(), 'Construction/mini-excavator', 'mini_excavator')

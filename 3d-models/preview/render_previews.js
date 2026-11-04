@@ -8,7 +8,7 @@ const HERE = __dirname, ROOT = path.resolve(HERE, '..');   // 3d-models/
 const JOBS = [   // [glb, azimuth, elevation, zoom]
   ['Construction/crawler-dozer/crawler_dozer.glb', 35, 20, 1.15],
   ['Construction/compact-track-loader/compact_track_loader.glb', 35, 22, 1.0],
-  ['Construction/mini-excavator/mini_excavator.glb', 35, 22, 1.0],
+  ['Construction/mini-excavator/mini_excavator.glb', 35, 20, 1.15],
   ['Construction/pickup-truck/pickup_truck.glb', 35, 22, 1.0],
   ['Construction/dually-pickup-truck/dually_pickup_truck.glb', 35, 22, 1.0],
 ];
