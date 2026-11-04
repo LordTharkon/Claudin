@@ -15,6 +15,7 @@ BUILDERS = ['build_utility_tractor', 'build_row_crop_tractor', 'build_combine_ha
             # expansion pack
             'build_reversible_plough',
             'build_disc_harrow',
+            'build_seed_drill',
             ]
 
 
