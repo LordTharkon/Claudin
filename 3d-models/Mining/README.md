@@ -17,12 +17,41 @@ numbers or model numbers. Mine-number panels on the light vehicle are left blank
 
 | Model | File | Size (L × W × H) | Moving parts / notes |
 |---|---|---|---|
-| **Large mining dozer** (~100 t class) | `large-mining-dozer/large_mining_dozer.glb` | 10.3 × 6.4 (blade) × 4.7 m; 3.5 m over tracks | U-blade 6.30 × 2.65 m on push arms: `push_frame_tilt` (lift, trunnions on the track frames), `blade_tilt` (side tilt) with dual `blade_tilt_cylinder_{left,right}` and `blade_lift_cylinder_{left,right}`. Single-shank ripper `ripper_tilt` with `ripper_lift_cylinder_*` and `ripper_pitch_cylinder_*`. 2.80 m gauge, 710 mm single-grouser shoes on a 317 mm pitch belt, 8 bottom rollers, 2 carriers, idler and segmented sprocket per side (all `_spin`). ROPS cab with white roof, fender walkways with guardrails and kickplates, rear access stair, fuel and hydraulic tanks, hazard stripes. 55.7k tris |
+| **Large mining dozer** (~100 t class) | `large-mining-dozer/large_mining_dozer.glb` | 10.3 × 6.4 (blade) × 4.7 m; 3.5 m over tracks | U-blade 6.30 × 2.65 m on push arms: `push_frame_tilt` (lift, trunnions on the track frames), `blade_tilt` (side tilt) with dual `blade_tilt_cylinder_{left,right}` and `blade_lift_cylinder_{left,right}`. Single-shank ripper `ripper_tilt` with `ripper_lift_cylinder_*` and `ripper_pitch_cylinder_*`. 2.80 m gauge, 710 mm single-grouser shoes on a 317 mm pitch belt, 8 bottom rollers, 2 carriers, idler and segmented sprocket per side (all `_spin`); each track is a group of 43 shoe nodes sharing one mesh (see below). ROPS cab with white roof, fender walkways with guardrails and kickplates, rear access stair, fuel and hydraulic tanks, hazard stripes. 55.7k tris drawn (43.5k unique) |
 | **Large wheel loader** (~13 m³ bucket) | `large-wheel-loader/large_wheel_loader.glb` | 16.7 × 5.1 × 6.65 m | Articulated: front frame is `hitch_rotate` (vertical hitch pins) with `steering_cylinder_{left,right}`; oscillating `rear_axle_rotate`. Z-bar linkage: `lift_arm_tilt` with `lift_cylinder_{left,right}`, `bell_crank_tilt` on the arm cross tube driven by `tilt_cylinder`, `tilt_link_rotate` to `bucket_tilt` (carried racked back ~0.4 m off the ground). 45/65R45-class tyres (2.68 m) on 5.20 m wheelbase, 5.0 m 9-tooth rock bucket, rear stair, side decks with guardrails, tanks between the wheels, counterweight with hazard stripes. 45.5k tris |
 | **Water cart** (~90 kL) | `water-cart/water_cart.glb` | 13.1 × 7.6 (mirrors; 7.0 over deck) × 6.6 m | Rigid two-axle haul-truck chassis: `wheel_front_{left,right}_steer` with `steering_cylinder_*`, duals on `wheel_rear_*_spin`, oil-pneumatic struts. Stepped 8.0 × 5.6 m tank (~89 m³ gross) with stiffening bands, tank-top walkway with guardrails, manholes and vent; front and rear ladders, diagonal front stairway, bumper deck with ladders. Front water cannon on a turret: `cannon_rotate` (Y) → `cannon_tilt` with `cannon_tilt_cylinder`. Rear spray bar with 4 heads (valve, actuator, fan deflector), pump. 40.00R57-class tyres. 58.2k tris |
 | **Mining motor grader** (24 ft / 7.3 m moldboard) | `mining-motor-grader/mining_motor_grader.glb` | 13.5 × 5.05 × 4.6 m (moldboard angled 50° for travel; 4.0 m over tyres) | Articulated `front_frame_rotate` (the frame articulation) with `articulation_cylinder_*`; oscillating `front_axle_rotate` with `wheel_front_*_steer`; rear tandems on walking beams `tandem_{left,right}_tilt`. Blade chain: `drawbar_tilt` (ball joint, `lift_cylinder_{left,right}`) → `circle_rotate` (toothed circle) → `moldboard_tilt` (pitch, `moldboard_tip_cylinder_*`) → `moldboard_slide` (side shift on chrome rails, `moldboard_side_shift_cylinder`). Front scarifier `scarifier_tilt` with 7 shanks and `scarifier_lift_cylinder`. 29.5R29-class tyres, rear decks with guardrails and ladders. 57.9k tris |
 | **Mine-spec light vehicle** (crew-cab 4x4 ute) | `mine-light-vehicle/mine_light_vehicle.glb` | 5.4 (5.5 with tow ball) × 1.9 (2.3 with mirrors) × 2.1 m to the beacon (2.4 to the aerial; 5.3 with the flag) | White body, internal 6-point ROPS, alloy bull bar with spotlights, side steps, snorkel, roof LED light bar and amber beacon, UHF aerial, flat alloy tray with drop sides, headboard, tray toolbox and two underbody toolboxes, rear bar with hazard stripes, blank mine-number panels (doors, bull bar, tailgate). `wheel_front_*_steer`, wheels `_spin`; the ~4 m buggy-whip flag (pole, pennant, tip lamp) is its own node `buggy_whip_flag`. 29.1k tris |
 | **Mine site props** | `mine-site-props/mine_site_props.glb` | 24.6 × 5.7 × 3.6 m (four props in a row along x) | Separate nodes: **`lighting_plant`** (towable, generator canopy, 4 LED floods; mast `mast_lift` → `mast_stage_2_lift` → `mast_stage_3_lift`, ~2.0 m travel each; `lamp_head_rotate`; `outrigger_{front,rear}_{left,right}_slide`; wheels and jockey wheel `_spin`), **`safety_berm_section`** (modular 6 m windrow, 2.0 m high, 5.7 m base, flat ends so sections butt together, embedded rocks), **`haul_road_sign`** (2.5 × 1.4 m blank face on two posts with concrete footings), **`fuel_bowser`** (self-bunded skid tank ~25 kL with pump cabinet, meter, `fuel_hose_reel_spin`, nozzle holster, ladder, top guardrail, vents, manhole, fork pockets). 8.3k tris |
+
+### Dozer track structure
+
+Each track is a group node, `track_right` / `track_left` (origin at the track centre line,
+z = ±1.40), whose children are the individual shoes in order round the loop:
+`track_right_shoe_00` … `track_right_shoe_42` (43 per side, same for left). Both sides are
+numbered in the same direction: counter-clockwise seen from +Z, so shoe 00 sits at the
+back of the sprocket and the sequence runs down round it and forward along the ground run. The shoes have no rig suffix.
+
+* Each shoe node's origin sits on the chain pitch line (the belt path round the idler and
+  sprocket pitch circles). Its rotation follows the loop: local +X along the tangent (the
+  travel direction), local +Y inward toward the rollers, local +Z = +Z.
+* Shoes are evenly spaced along the loop at 0.3135 m: the loop length divided by 43, the
+  317 mm pitch rounded to a whole number of shoes. Moving shoe N to shoe N+1's rest
+  transform (translation and rotation) runs the track forward one shoe; looping that makes
+  it run continuously.
+* All 86 shoes share one mesh, `track_shoe` (144 triangles), through glTF mesh reuse. The
+  file holds 43.5k unique triangles and draws 55.7k.
+* Rollers, carrier rollers, idlers and sprockets remain `_spin` nodes with their origins
+  on their centres.
+
+The per-shoe nodes are written by `track_loop_nodes` and `save_with_instanced_tracks` in
+`mining_parts.py`. After the shared writer runs, they rewrite the `.glb` so every shoe
+node points at the first shoe's mesh, moved into the shoe's local frame.
+
+**Validator note:** `validate_glb.py` requires rest-pose nodes to carry translation only,
+so it reports `node "track_*_shoe_NN" has rotation` for each of the 86 shoe nodes. This is
+inherent to rotated, mesh-sharing shoes. Every other check passes for the dozer: bounds,
+ground contact, UVs, materials and names.
 
 Every machine is under the 80k-triangle budget and the props file is under 20k. Heights are
 to the top of the cab roof unit or beacons; aerials and exhaust tips add a little.
@@ -48,8 +77,9 @@ Materials used across the pack: `paint_yellow`, `paint_white`, `paint_red`, `pai
 plus the existing site-prop materials `concrete` (sign footings) and `gravel` (berm rocks).
 
 **One new material:** `dirt` (the safety berm), because nothing on the list fits a dirt
-windrow. `validate_glb.py` flags it (`material "dirt" not in the allowed list`); that is the
-only finding in the pack and is expected. All other checks pass for all six files.
+windrow. `validate_glb.py` flags it (`material "dirt" not in the allowed list`). That and
+the dozer's track-shoe rotations (see above) are the only findings in the pack, and both
+are expected.
 
 ## Files in this folder
 

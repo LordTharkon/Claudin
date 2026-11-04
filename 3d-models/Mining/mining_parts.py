@@ -407,3 +407,110 @@ def sight_gauge(x, y0, y1, z, side=1):
 def save(model, slug):
     """Write Mining/<slug>/<slug_with_underscores>.glb."""
     meshkit.save(model, os.path.join('Mining', slug), slug.replace('-', '_'))
+
+
+# --------------------------------------------------------- instanced track ---
+
+def track_shoe_frame(tx, ty):
+    """Rotation of a track shoe at a loop point with unit tangent (tx, ty) in the x-y plane.
+    Columns: local +X = travel tangent, local +Y = inward (toward the rollers), local +Z = +Z.
+    A proper rotation (det +1), so it can be written as a glTF node rotation."""
+    return from_columns((tx, ty, 0), (-ty, tx, 0), (0, 0, 1))
+
+
+def track_loop_nodes(m, group, parent, loop, pitch, z, shoe_geos):
+    """One node per shoe under `group`, in order round the loop (`<group>_shoe_NN`).
+
+    Each shoe node's origin is on the chain pitch line; its geometry is authored in world
+    space (shoe outward side = local +Y of `shoe_geos`). Shoes are spaced evenly; the spacing
+    is the loop length divided by the shoe count (= `pitch` rounded to a whole number of
+    shoes). Records each shoe's rotation in m.track_shoes for `instance_track_shoes`."""
+    from meshkit import resample_loop
+    n = round(sum(math.dist(loop[i], loop[i - 1]) for i in range(len(loop))) / pitch)
+    samples, total = resample_loop(loop, n)
+    m.node(group, parent, (0.0, 0.0, z))
+    if not hasattr(m, 'track_shoes'):
+        m.track_shoes = {}
+    for i, ((px, py), tx, ty) in enumerate(samples):
+        name = '%s_shoe_%02d' % (group, i)
+        node = m.node(name, group, (px, py, z))
+        M = from_columns((tx, ty, 0), (ty, -tx, 0), (0, 0, 1))   # authoring frame (outward +Y)
+        m.add(node, [g.transform(M, (px, py, z)) for g in shoe_geos])
+        m.track_shoes[name] = track_shoe_frame(tx, ty)
+    return total / n
+
+
+def _quat(R):
+    """(x, y, z, w) quaternion of a 3x3 rotation matrix given as rows."""
+    t = R[0][0] + R[1][1] + R[2][2]
+    if t > 0:
+        s = math.sqrt(t + 1.0) * 2
+        q = ((R[2][1] - R[1][2]) / s, (R[0][2] - R[2][0]) / s, (R[1][0] - R[0][1]) / s, 0.25 * s)
+    elif R[0][0] > R[1][1] and R[0][0] > R[2][2]:
+        s = math.sqrt(1.0 + R[0][0] - R[1][1] - R[2][2]) * 2
+        q = (0.25 * s, (R[0][1] + R[1][0]) / s, (R[0][2] + R[2][0]) / s, (R[2][1] - R[1][2]) / s)
+    elif R[1][1] > R[2][2]:
+        s = math.sqrt(1.0 + R[1][1] - R[0][0] - R[2][2]) * 2
+        q = ((R[0][1] + R[1][0]) / s, 0.25 * s, (R[1][2] + R[2][1]) / s, (R[0][2] - R[2][0]) / s)
+    else:
+        s = math.sqrt(1.0 + R[2][2] - R[0][0] - R[1][1]) * 2
+        q = ((R[0][2] + R[2][0]) / s, (R[1][2] + R[2][1]) / s, 0.25 * s, (R[1][0] - R[0][1]) / s)
+    return [round(c, 7) for c in q]
+
+
+def instance_track_shoes(path, model, template):
+    """Rewrite a written .glb so every track shoe node reuses the mesh of `template`.
+
+    The template mesh is moved into the shoe's local frame (see `track_shoe_frame`), renamed
+    `track_shoe`, and every shoe node gets that mesh plus its rotation. Requires that the
+    other shoe nodes were exported without geometry (see `save_with_instanced_tracks`)."""
+    import json
+    import struct
+    data = open(path, 'rb').read()
+    jlen = struct.unpack('<I', data[12:16])[0]
+    doc = json.loads(data[20:20 + jlen])
+    blen = struct.unpack('<I', data[20 + jlen:24 + jlen])[0]
+    blob = bytearray(data[28 + jlen:28 + jlen + blen])
+    idx = {n['name']: i for i, n in enumerate(doc['nodes'])}
+    tnode = doc['nodes'][idx[template]]
+    mesh = doc['meshes'][tnode['mesh']]
+    mesh['name'] = 'track_shoe'
+    Rt = tuple(zip(*model.track_shoes[template]))   # inverse = transpose
+    for prim in mesh['primitives']:
+        for key in ('POSITION', 'NORMAL'):
+            acc = doc['accessors'][prim['attributes'][key]]
+            view = doc['bufferViews'][acc['bufferView']]
+            off, cnt = view['byteOffset'], acc['count']
+            vals = struct.unpack_from('<%df' % (cnt * 3), blob, off)
+            out = []
+            for i in range(cnt):
+                v = vals[3 * i:3 * i + 3]
+                out += [sum(Rt[r][c] * v[c] for c in range(3)) for r in range(3)]
+            struct.pack_into('<%df' % (cnt * 3), blob, off, *out)
+            if key == 'POSITION':
+                acc['min'] = [min(out[k::3]) for k in range(3)]
+                acc['max'] = [max(out[k::3]) for k in range(3)]
+    for name, R in model.track_shoes.items():
+        n = doc['nodes'][idx[name]]
+        assert name == template or 'mesh' not in n, name
+        n['mesh'] = tnode['mesh']
+        n['rotation'] = _quat(R)
+    js = json.dumps(doc, separators=(',', ':')).encode()
+    js += b' ' * (-len(js) % 4)
+    total = 12 + 8 + len(js) + 8 + len(blob)
+    with open(path, 'wb') as f:
+        f.write(struct.pack('<4sII', b'glTF', 2, total))
+        f.write(struct.pack('<I4s', len(js), b'JSON') + js)
+        f.write(struct.pack('<I4s', len(blob), b'BIN\0') + bytes(blob))
+
+
+def save_with_instanced_tracks(model, slug):
+    """Like `save`, but every track shoe shares one mesh (the first shoe of the first track).
+    All shoes stay in the model until it is finalised, so bounds and centring see them."""
+    model.finalize()
+    names = list(model.track_shoes)
+    template = names[0]
+    for name in names[1:]:
+        model.parts[name] = []
+    save(model, slug)
+    instance_track_shoes(os.path.join(HERE, slug, slug.replace('-', '_') + '.glb'), model, template)

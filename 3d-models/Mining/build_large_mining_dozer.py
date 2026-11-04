@@ -12,8 +12,8 @@ import math
 from mining_parts import (MINING_MATERIALS, Model, beacon, blade, box, box_between, box_span, cab,
                           cyl_between, cylinder, deck, exhaust, extrude, from_columns, guardrail,
                           hazard_stripes, hose, lamp, lathe, louvres, precleaner, save, sight_gauge,
-                          sphere, stairs, tank_cap)
-from meshkit import belt_path, resample_loop
+                          sphere, stairs, tank_cap, track_loop_nodes, save_with_instanced_tracks)
+from meshkit import belt_path
 
 # ---- undercarriage
 GAUGE = 2.80
@@ -57,17 +57,9 @@ def track_shoe():
 
 
 def track_side(m):
-    part = 'track_right'
     u = 'undercarriage_right'
     m.node(u, 'body')
-    m.node(part, u)
-    loop = belt_path([IDLER, SPROCKET])
-    n_guess = round(sum(math.dist(loop[i], loop[i - 1]) for i in range(len(loop))) / PITCH)
-    samples, _ = resample_loop(loop, n_guess)
-    shoe = track_shoe()
-    for (px, py), tx, ty in samples:
-        M = from_columns((tx, ty, 0), (ty, -tx, 0), (0, 0, 1))
-        m.add(part, [g.transform(M, (px, py, ZT)) for g in shoe])
+    track_loop_nodes(m, 'track_right', u, belt_path([IDLER, SPROCKET]), PITCH, ZT, track_shoe())
 
     # track frame and roller guards
     frame = [(-1.95, 0.70), (1.95, 0.70), (2.05, 0.80), (2.05, 1.02), (1.90, 1.12), (-1.60, 1.12),
@@ -303,6 +295,9 @@ def build():
     m.node('cab', 'body')
     track_side(m)
     m.mirror('right', 'left')
+    # left shoes are the z-mirror of the right ones; the shoe is symmetric in z, so the same
+    # local frame (and shared mesh) applies
+    m.track_shoes.update({k.replace('right', 'left'): R for k, R in list(m.track_shoes.items())})
     body(m)
     blade_assembly(m)
     ripper(m)
@@ -310,4 +305,4 @@ def build():
 
 
 if __name__ == '__main__':
-    save(build(), 'large-mining-dozer')
+    save_with_instanced_tracks(build(), 'large-mining-dozer')
