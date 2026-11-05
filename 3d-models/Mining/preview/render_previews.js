@@ -17,6 +17,7 @@ const JOBS = [   // [glb, azimuth, elevation, zoom]
   ['Mining/development-jumbo/development_jumbo.glb', 35, 20, 1.35],
   ['Mining/service-truck/service_truck.glb', -145, 20, 1.3],
   ['Mining/tyre-handler/tyre_handler.glb', 35, 18, 1.2],
+  ['Mining/mine-processing-props/mine_processing_props.glb', 40, 28, 1.25],
 ];
 const srv = http.createServer((req, res) => {
   const p = decodeURIComponent(req.url.split('?')[0]);

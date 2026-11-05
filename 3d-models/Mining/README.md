@@ -2,7 +2,8 @@
 
 The support fleet for the ultra-class mining machines: a large mining dozer, a large wheel
 loader, a water cart, a mining motor grader, a mine-spec light vehicle and a set of mine
-site props. Like the Construction models, each one is a single self-contained, true-scale
+site props. **Expansion 2** adds an underground fleet (loader, haul truck, development
+jumbo), a surface service / lube truck, a tyre handler and a set of processing props. Like the Construction models, each one is a single self-contained, true-scale
 (metres) `.glb`, generated from plain Python. All of them follow the pack conventions in
 [`../README.md`](../README.md): +Y up, facing +X, origin on the ground and centred, rest
 pose with identity node rotations, descriptive node names, rig suffixes with origins on real
@@ -28,6 +29,7 @@ numbers or model numbers. Mine-number panels on the light vehicle are left blank
 | **Twin-boom development jumbo** (face drilling rig) | `development-jumbo/development_jumbo.glb` | 14.2 × 2.55 × 2.95 m (3.1 to the beacon) | Articulated: the rear unit is `hitch_rotate` with `steering_cylinder_{left,right}`. Two booms, each `boom_<side>_rotate` (swing about Y on a turntable, `boom_<side>_swing_cylinder`) → `boom_<side>_tilt` (lift, `boom_<side>_lift_cylinder`; telescopic tube with hose runs and a work lamp) → `feed_<side>_slide` (4.5 m aluminium feed along x, rails, front centraliser, drill rod) → `rock_drill_<side>_slide` (drill on its carriage, hoses). Front stabiliser jacks `stabiliser_{left,right}_lift` (retracted). Centre FOPS canopy (open sides with mesh guard, seat, joysticks, glazing, lamps, beacon), hydraulic tank and electrical cabinet beside it. Rear unit: power pack and electrical cabinet, diesel tramming engine with scrubber box, `cable_reel_spin` (~1.9 m reel in `cable_rubber`) with cable guide, rear bumper, light posts with hazard stripes; front nose with lamps and stripes. 12.00-24-class tyres. 41.8k tris |
 | **Service / lube truck** (surface, rigid 6x4) | `service-truck/service_truck.glb` | 10.2 × 2.5 (3.0 with mirrors) × 3.5 m | Conventional bonneted day cab (white) with glazing, seats, steering wheel, steps, grab handles, mirrors, roof lamps, two beacons; `wheel_front_*_steer`, single fronts and tandem duals on `wheel_*_spin` (315/80R22.5-class). Service body: three bays of roll-up doors each side, `door_{left,right}_{1,2,3}_slide` (slide up into the head boxes); three fluid tanks in saddles across the front (colour bands for oil, hydraulic oil, coolant; fill caps, vents); open rear bay with four `hose_reel_{1..4}_spin`, hoses and nozzle holsters; headboard with lamps and beacon; rear deck with grating, guardrail and rear ladder; rear bumper with lamps and hazard stripes. Knuckle crane on the rear deck, stowed folded: `crane_rotate` (Y) → `crane_boom_tilt` (`crane_boom_cylinder`) → `crane_jib_tilt` (`crane_jib_cylinder`), hook, control station. Exhaust stack, air intake, fuel tank, battery box, mudflaps. 56.6k tris |
 | **Tyre handler** (loader-based) | `tyre-handler/tyre_handler.glb` | 9.4 × 3.5 × 4.0 m (4.1 to the beacons) | Articulated wheel-loader carrier: front frame is `hitch_rotate` with `steering_cylinder_{left,right}`, oscillating `rear_axle_rotate`. Manipulator: `arm_tilt` (twin arms, `arm_lift_cylinder_{left,right}`) → `gripper_tilt` (pitch on the arm-tip pins, `gripper_tilt_cylinder`) → `gripper_rotate` (roll about X on a slew bearing, roll motor) → clamp pads `pad_left_slide` / `pad_right_slide` on a chrome-guided beam, each driven by `pad_<side>_cylinder`; pads with rubber facings, two turning rollers and a lamp. ROPS cab with white roof unit, beacons and lamps; side decks with guardrails, ladder, fuel and hydraulic tanks; engine enclosure with louvres, exhaust, pre-cleaner, rear radiator grille, counterweight with lamps and hazard stripes; front bumper stripes. 23.5R25-class tyres. 42.3k tris |
+| **Mine processing props** | `mine-processing-props/mine_processing_props.glb` | 40.5 × 23.0 × 9.0 m (five props in two rows, ≥ 0.6 m apart) | Separate top-level nodes: **`mobile_jaw_crusher`** (~15 × 3.4 × 3.8 m tracked plant; static tracks with shoes, idlers, sprockets and rollers; flared feed hopper over a grizzly feeder, jaw chamber with flywheels, belt guard and motor, power unit with louvres and exhaust, control cabinet, walkway with guardrail and ladder, inclined product conveyor, lamp, beacon, hazard stripes at both ends), **`conveyor_section`** (20 m, ~7° incline, 900 mm belt troughed over 35° three-roll idler sets every 1.2 m, return belt and idlers, head and tail pulleys, drive and discharge hood, side walkway with handrail, four trestles on concrete pads), **`stockpile_cone`** (`gravel`, 9.2 m base, 3.2 m high), **`site_office`** (12 × 3 m crib room on skids: panelled walls, roof with gutter, framed windows, door with landing, steps and handrails, lamp, wall AC units, meter box), **`underground_portal`** (10 × 8 m concrete headwall with cope beam and wing walls, D-shaped 5.0 × 6.0 m opening, `dirt` backfill, concrete-lined tunnel stub with gravel floor, three steel sets with collar ties, portal lamps, yellow ventilation duct hung on a messenger wire running out and down to a surface fan with starter box). 18.7k tris |
 
 ### Dozer track structure
 
@@ -58,7 +60,8 @@ so it reports `node "track_*_shoe_NN" has rotation` for each of the 86 shoe node
 inherent to rotated, mesh-sharing shoes. Every other check passes for the dozer: bounds,
 ground contact, UVs, materials and names.
 
-Every machine is under the 80k-triangle budget and the props file is under 20k. Heights are
+Every machine is under the 80k-triangle budget and the props file is under 20k. The
+expansion 2 machines are each under 60k triangles and the processing props file is under 25k. Heights are
 to the top of the cab roof unit or beacons; aerials and exhaust tips add a little.
 
 ![Large mining dozer](large-mining-dozer/preview.png)
@@ -67,6 +70,12 @@ to the top of the cab roof unit or beacons; aerials and exhaust tips add a littl
 ![Mining motor grader](mining-motor-grader/preview.png)
 ![Mine light vehicle](mine-light-vehicle/preview.png)
 ![Mine site props](mine-site-props/preview.png)
+![Underground loader](underground-loader/preview.png)
+![Underground haul truck](underground-haul-truck/preview.png)
+![Development jumbo](development-jumbo/preview.png)
+![Service truck](service-truck/preview.png)
+![Tyre handler](tyre-handler/preview.png)
+![Mine processing props](mine-processing-props/preview.png)
 
 ## Materials
 
@@ -81,15 +90,24 @@ Materials used across the pack: `paint_yellow`, `paint_white`, `paint_red`, `pai
 `seat_fabric`, `glass`, `glass_tinted`, `lamp_lens`, `lamp_amber`, `lamp_red`, `lamp_beacon`,
 plus the existing site-prop materials `concrete` (sign footings) and `gravel` (berm rocks).
 
+Expansion 2 uses the same scheme (the service truck cab and the site office are
+`paint_white`) and adds no new material names. It also uses `aluminum` (drill feeds, roll-up
+doors, window frames), `cable_rubber` (jumbo cable reel), `paint_gray` / `paint_gray_dark`
+(conveyor steelwork, cabinets, fan), `paint_red` (rock drills, fire bottle),
+`paint_orange` / `paint_blue` / `paint_green` (identification bands on the lube-truck
+tanks), `paint_yellow` for the ventilation duct, and the existing Mining addition `dirt` for
+the portal backfill. `concrete` and `gravel` are used for the portal, trestle pads and
+stockpile.
+
 **One new material:** `dirt` (the safety berm), because nothing on the list fits a dirt
 windrow. `validate_glb.py` flags it (`material "dirt" not in the allowed list`). That and
 the dozer's track-shoe rotations (see above) are the only findings in the pack, and both
-are expected.
+are expected. The processing props report the same `dirt` finding.
 
 ## Files in this folder
 
 * `build_*.py`: one script per model, each writes `<slug>/<slug>.glb`.
-* `build_all.py`: regenerates all six models.
+* `build_all.py`: regenerates all twelve models.
 * `mining_parts.py`: Mining-specific helpers. It imports the shared modules from
   `3d-models/` through `sys.path` and does not change them. It contains:
   * `hydraulic_parts_with_hoses`: wraps the shared `meshkit.hydraulic_parts` to add a hose run
@@ -106,9 +124,12 @@ are expected.
     (plate with grating), `hazard_stripes` (diagonal red/white bands on any rectangle).
   * Scaled-up `lamp`, `beacon`, `louvres`, `exhaust`, `precleaner`, `tank_cap`,
     `sight_gauge`.
+  * `underground_cab`: low side-mounted operator compartment for underground machines (ROPS
+    posts, FOPS roof bars, transverse seat, joystick consoles, glazing, glazed door or open
+    entry with mesh guard, lamps, beacon), used by the haul truck and the jumbo.
   * `MINING_MATERIALS`: the shared library plus `dirt`.
 * `check_zfighting_mining.py`: runs the shared z-fighting checker (`../check_zfighting.py`)
-  over the Mining builders. All six report 0 z-fighting pairs.
+  over the Mining builders. All twelve report 0 z-fighting pairs.
 * `preview/`: `render_previews.js` and `preview.html` regenerate the `preview.png` files
   with three.js in headless Chromium, in the same style as the Construction previews.
 
